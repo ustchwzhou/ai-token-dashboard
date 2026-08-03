@@ -1392,6 +1392,18 @@ button, input, select { font-family: inherit; color: inherit; }
   border-bottom: 1px solid oklch(0.34 0.02 265);
   transform: translateX(-50%) rotate(45deg);
 }
+/* Flipped under the cell when the rows above leave no room. */
+.heat-tooltip-below {
+  transform: translate(-50%, 9px);
+}
+.heat-tooltip-below::after {
+  bottom: auto;
+  top: -5px;
+  border-right: none;
+  border-bottom: none;
+  border-left: 1px solid oklch(0.34 0.02 265);
+  border-top: 1px solid oklch(0.34 0.02 265);
+}
 .heat-tooltip strong,
 .heat-tooltip span,
 .heat-tooltip small { display: block; }

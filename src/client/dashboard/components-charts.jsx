@@ -2,7 +2,7 @@
    Charts — Trend, Donut, TopModels, Heatmap, Gauge, Stat
    ============================================================= */
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import { U } from '../shared/utils.js';
 import { EChart } from '../shared/echart.jsx';
@@ -441,7 +441,10 @@ function TopModels({ rows, onDrillModel }) {
 // ───────────────────────────────────────────────────────────────
 function Heatmap({ rows, dates, loading = false, error = null }) {
   const [activeCell, setActiveCell] = useState(null);
+  const [tipBox, setTipBox] = useState(null);
   const gridRef = useRef(null);
+  const scrollRef = useRef(null);
+  const tipRef = useRef(null);
 
   const byCell = new Map();
   const byDate = new Map();
@@ -513,28 +516,66 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 
   const HOURS_LABELS = ['0', '', '', '', '4', '', '', '', '8', '', '', '', '12', '', '', '', '16', '', '', '', '20', '', '', ''];
 
+  // Gap between the cell and the tooltip body, wide enough for the arrow.
+  const TOOLTIP_GAP = 9;
+  // Keep the arrow off the rounded corners so it still reads as a pointer.
+  const ARROW_INSET = 14;
+
   const showTooltip = (event, date, hour, cell) => {
     const grid = gridRef.current;
     if (!grid) return;
 
     const gridRect = grid.getBoundingClientRect();
     const cellRect = event.currentTarget.getBoundingClientRect();
-    const dayTotal = byDate.get(date) || 0;
-    // Clamp inside the grid: an overflowing tooltip expands the scrollable
-    // area of .heatmap-scroll and pops a horizontal scrollbar on edge cells.
-    const half = 92;
-    const anchor = cellRect.left - gridRect.left + cellRect.width / 2;
-    const left = Math.min(Math.max(anchor, half), Math.max(half, gridRect.width - half));
     setActiveCell({
       date,
       hour,
       ...cell,
-      dayTotal,
-      left,
-      arrowShift: anchor - left,
-      top: cellRect.top - gridRect.top
+      dayTotal: byDate.get(date) || 0,
+      gridWidth: gridRect.width,
+      anchor: cellRect.left - gridRect.left + cellRect.width / 2,
+      cellTop: cellRect.top - gridRect.top,
+      cellBottom: cellRect.bottom - gridRect.top
     });
+    setTipBox(null);
   };
+
+  // The tooltip's own size decides where it can go, so place it only once it is
+  // in the DOM. Runs before paint, so the unmeasured pass is never visible.
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    const grid = gridRef.current;
+    const scroll = scrollRef.current;
+    if (!activeCell || !tip || !grid || !scroll) return;
+
+    const gridRect = grid.getBoundingClientRect();
+    const scrollRect = scroll.getBoundingClientRect();
+    const {width, height} = tip.getBoundingClientRect();
+
+    // Clamp inside the grid: an overflowing tooltip expands the scrollable
+    // area of .heatmap-scroll and pops a horizontal scrollbar on edge cells.
+    const half = width / 2;
+    const left = Math.min(
+      Math.max(activeCell.anchor, half),
+      Math.max(half, gridRect.width - half)
+    );
+    // The arrow tracks the cell, but it has to stay on the tooltip body —
+    // off the edge the rotated square loses its cover and reads as a diamond.
+    const maxShift = Math.max(0, half - ARROW_INSET);
+    const arrowShift = Math.min(Math.max(activeCell.anchor - left, -maxShift), maxShift);
+
+    // .heatmap-scroll scrolls on X, which forces overflow-y to clip as well, so
+    // the top rows have no room above them. Flip under the cell instead.
+    const roomAbove = gridRect.top - scrollRect.top + activeCell.cellTop;
+    const below = roomAbove < height + TOOLTIP_GAP;
+
+    setTipBox({
+      left,
+      arrowShift,
+      below,
+      top: below ? activeCell.cellBottom : activeCell.cellTop
+    });
+  }, [activeCell]);
 
   return (
     <div className="panel">
@@ -561,7 +602,7 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
       </div>
       <div className="heatmap-layout">
         <div className="heatmap-main">
-          <div className="heatmap-scroll">
+          <div className="heatmap-scroll" ref={scrollRef}>
             <div
               ref={gridRef}
               className="heatmap-grid"
@@ -619,9 +660,17 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 
               {activeCell && (
                 <div
-                  className="heat-tooltip"
+                  ref={tipRef}
+                  className={`heat-tooltip${tipBox?.below ? ' heat-tooltip-below' : ''}`}
                   role="tooltip"
-                  style={{left: activeCell.left, top: activeCell.top, '--arrow-shift': `${activeCell.arrowShift || 0}px`}}>
+                  style={{
+                    // Before measuring, park it mid-grid so it cannot widen the
+                    // scroll area, and keep it hidden until it is placed.
+                    left: tipBox ? tipBox.left : activeCell.gridWidth / 2,
+                    top: tipBox ? tipBox.top : activeCell.cellTop,
+                    visibility: tipBox ? 'visible' : 'hidden',
+                    '--arrow-shift': `${tipBox?.arrowShift || 0}px`
+                  }}>
                   <strong>{activeCell.date} · {String(activeCell.hour).padStart(2, '0')}:00</strong>
                   {activeCell.tokens > 0 ? (
                     <>
