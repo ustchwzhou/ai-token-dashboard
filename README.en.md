@@ -13,9 +13,11 @@ Reads session logs directly from your machine, aggregates them into a local SQLi
 
 ## Screenshots
 
-![Token Studio dashboard](.github/assets/dashboard.png)
+![Token Studio dashboard — light](.github/assets/dashboard.png)
 
-> _Illustrative, using demo data._
+![Token Studio dashboard — dark](.github/assets/dashboard-dark.png)
+
+> _Illustrative, using demo data. Run `npm run seed:demo` to generate the same dataset locally._
 
 ---
 
@@ -23,6 +25,7 @@ Reads session logs directly from your machine, aggregates them into a local SQLi
 
 - **Multi-source collection** — Claude Code, Codex CLI, OpenCode, Gemini CLI, Hermes Agent, OpenClaw
 - **Two views** — interactive usage dashboard (`/`) and a printable retrospective page (`/review`)
+- **Light / dark theme** — follows the OS by default, toggles from the top-right, and the choice is remembered locally across both pages
 - **Cost tracking** — per-model cost estimation via bundled LiteLLM + OpenRouter pricing caches
 - **In-app collection** — trigger a local collection run from the dashboard's top-right **Collect** button (loopback only)
 - **Multi-device** — optional push mode to aggregate usage from multiple machines into a single hub
@@ -118,6 +121,15 @@ You can also start them separately:
 npm run dev:server # API server only, default port 4173
 npm run dev:client # Vite frontend only, port 5173
 ```
+
+To preview the UI without real data (or to retake the README screenshots), generate a demo dataset:
+
+```bash
+npm run seed:demo                      # writes data/demo.sqlite, never touches data/usage.sqlite
+DB_PATH=data/demo.sqlite npm run serve
+```
+
+The seed is deterministic, so the same command always paints the same dashboard.
 
 The dashboard's **Collect** button calls `POST /api/collect` and polls `GET /api/collect/status`. The collect endpoint is restricted to loopback requests.
 
