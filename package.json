@@ -7,6 +7,7 @@
     "pricing:update": "node src/update-pricing.mjs",
     "pricing:backfill": "node src/backfill-pricing.mjs",
     "db:init": "node src/db-init.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
     "db:check": "node src/db-check.mjs",
     "db:migrate": "node src/db-migrate.mjs",
     "dev": "node src/dev.mjs",

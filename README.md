@@ -13,9 +13,11 @@
 
 ## 截图
 
-![Token Studio 用量看板](.github/assets/dashboard.png)
+![Token Studio 用量看板 · 亮色](.github/assets/dashboard.png)
 
-> _示意图，使用演示数据。_
+![Token Studio 用量看板 · 暗色](.github/assets/dashboard-dark.png)
+
+> _示意图，使用演示数据。运行 `npm run seed:demo` 可在本机生成同一份数据。_
 
 ---
 
@@ -23,6 +25,7 @@
 
 - **多源采集** — 支持 Claude Code、Codex CLI、OpenCode、Gemini CLI、Hermes Agent、OpenClaw
 - **双视图** — 交互式用量看板（`/`）和适合阅读与打印的复盘页（`/review`）
+- **亮色 / 暗色主题** — 默认跟随系统，右上角一键切换，选择记在本机，两个页面共用
 - **成本追踪** — 基于随仓库提供的 LiteLLM + OpenRouter 定价缓存，按模型估算 token 费用
 - **页面内采集** — 在看板右上角点击「采集」即可触发一次本机采集（仅允许本机访问）
 - **多设备汇聚** — 可选推送模式，将多台机器的用量合并到单一中心节点
@@ -118,6 +121,15 @@ http://localhost:5173 # Vite 前端开发页面（HMR）
 npm run dev:server # 只启动 API 服务，默认端口 4173
 npm run dev:client # 只启动 Vite 前端，端口 5173
 ```
+
+想在没有真实数据时预览界面（或重拍 README 截图），可以生成一份演示数据：
+
+```bash
+npm run seed:demo                      # 写入 data/demo.sqlite，不碰 data/usage.sqlite
+DB_PATH=data/demo.sqlite npm run serve
+```
+
+生成结果是确定性的（固定随机种子），同样的命令永远得到同样的看板。
 
 看板右上角的「采集」按钮会调用本机接口 `POST /api/collect`，并通过 `GET /api/collect/status` 轮询进度。该接口只允许 loopback 本机访问。
 
