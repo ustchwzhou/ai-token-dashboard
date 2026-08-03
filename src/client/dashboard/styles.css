@@ -56,6 +56,7 @@
   --tip-border: oklch(0.34 0.02 265);
   --tip-text:   oklch(0.97 0.005 80);
   --tip-muted:  oklch(0.77 0.01 265);
+  --icon-plate: transparent;          /* brand logos sit on the page as-is */
 
   --radius:      12px;
   --radius-sm:   8px;
@@ -127,6 +128,7 @@
   --tip-border: oklch(0.46 0.02 265);
   --tip-text:   oklch(0.97 0.005 80);
   --tip-muted:  oklch(0.80 0.01 265);
+  --icon-plate: oklch(0.90 0.004 80);
 
   --shadow-sm: 0 1px 0 oklch(0.28 0.010 60);
   --shadow:    0 1px 3px rgb(0 0 0 / 0.35), 0 0 0 1px var(--border);
@@ -1724,6 +1726,16 @@ table.dt tbody tr.selected { background: var(--accent-soft); }
 }
 .tag-dot { width: 6px; height: 6px; border-radius: 50%; }
 .tag-icon { width: 12px; height: 12px; object-fit: contain; flex-shrink: 0; }
+
+/* Brand logos ship as <img src="*.svg">, so CSS cannot reach their fills, and
+   several of them (gpt, hermes, opencode, openclaw) are near-black — invisible
+   on a dark ground. Give every logo the light plate it was drawn for rather
+   than recolouring anyone's mark. */
+:root[data-theme="dark"] :is(.tag-icon, .pill-icon, .bar-head-icon, .quota-logo) {
+  background: var(--icon-plate);
+  border-radius: 3px;
+  padding: 1px;
+}
 .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
 .share-bar {
