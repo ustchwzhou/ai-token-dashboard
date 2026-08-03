@@ -6,11 +6,13 @@ import { useMemo, useState } from 'react';
 import { U } from '../shared/utils.js';
 import { EChart } from '../shared/echart.jsx';
 import { RU } from './utils.js';
+import { chartPalette, useTheme } from '../shared/theme.js';
 
 // ───────────────────────────────────────────────────────────────
 // Tools donut + per-tool list
 // ───────────────────────────────────────────────────────────────
 function ToolsSection({ daily, totalTokens }) {
+  const pal = chartPalette(useTheme().theme);
   const tools = useMemo(() => {
     const list = RU.aggregateBy(daily, 'source').sort((a, b) => b.totalTokens - a.totalTokens);
     return list.map(t => ({
@@ -29,10 +31,10 @@ function ToolsSection({ daily, totalTokens }) {
       appendToBody: true,
       confine: true,
       transitionDuration: 0,
-      backgroundColor: '#fff',
-      borderColor: 'oklch(0.92 0.004 80)',
+      backgroundColor: pal.tooltipBg,
+      borderColor: pal.tooltipBorder,
       borderWidth: 1,
-      textStyle: { color: 'oklch(0.18 0.005 80)', fontSize: 12 },
+      textStyle: { color: pal.tooltipText, fontSize: 12 },
       extraCssText: 'pointer-events:none;box-shadow:0 8px 24px rgb(0 0 0 / 0.08);border-radius:8px;',
       formatter: p => `<div style="font-weight:600;margin-bottom:4px">${p.name}</div>
         <div style="font-size:14px;font-weight:600">${U.compactCN(p.value)} tokens</div>
@@ -51,7 +53,7 @@ function ToolsSection({ daily, totalTokens }) {
       labelLine: { show: false },
       itemStyle: {
         borderRadius: 8,
-        borderColor: '#fff',
+        borderColor: pal.sliceBorder,
         borderWidth: 2,
         shadowBlur: 12,
         shadowOffsetY: 3,
@@ -71,7 +73,7 @@ function ToolsSection({ daily, totalTokens }) {
           itemStyle: {
             color: U.getSourceColor(t.key),
             opacity: 1,
-            borderColor: '#fff',
+            borderColor: pal.sliceBorder,
             borderWidth: 2,
             shadowBlur: 12,
             shadowOffsetY: 3,
@@ -80,7 +82,7 @@ function ToolsSection({ daily, totalTokens }) {
         }
       }))
     }]
-  }), [tools]);
+  }), [tools, pal]);
 
   if (!tools.length) return null;
   const top = tools[0];
