@@ -28,6 +28,34 @@
 
   --good:        oklch(0.55 0.14 145);
   --bad:         oklch(0.55 0.18 25);
+  --warn-text:   oklch(0.50 0.15 70);
+
+  /* Selected / active states — a wash of the indigo accent */
+  --accent-soft:        oklch(0.97 0.02 265);
+  --accent-soft-2:      oklch(0.95 0.025 265);
+  --accent-soft-border: oklch(0.85 0.04 265);
+  --on-accent:          oklch(0.995 0.005 80);   /* text on a filled accent */
+
+  --brand-from: oklch(0.30 0.04 265);
+  --brand-to:   oklch(0.20 0.02 265);
+  --btn-primary-hover: oklch(0.25 0.005 80);
+  --track: oklch(0.88 0.004 80);                 /* switch rail */
+  --knob:  oklch(1 0 0);
+  --scrim: oklch(0.18 0.005 80 / 0.30);          /* drawer backdrop */
+
+  /* Heatmap ramp — level 0 is the "no usage" cell */
+  --heat-0:   oklch(0.955 0.006 80);
+  --heat-1:   oklch(0.88 0.055 265);  --heat-1-edge: oklch(0.84 0.06 265);
+  --heat-2:   oklch(0.76 0.10 265);   --heat-2-edge: oklch(0.72 0.11 265);
+  --heat-3:   oklch(0.63 0.15 265);   --heat-3-edge: oklch(0.59 0.16 265);
+  --heat-4:   oklch(0.48 0.18 265);   --heat-4-edge: oklch(0.44 0.18 265);
+  --gauge-track: oklch(0.95 0.004 80);
+
+  /* Heatmap tooltip — deliberately inverted against the page */
+  --tip-bg:     oklch(0.20 0.012 265 / 0.96);
+  --tip-border: oklch(0.34 0.02 265);
+  --tip-text:   oklch(0.97 0.005 80);
+  --tip-muted:  oklch(0.77 0.01 265);
 
   --radius:      12px;
   --radius-sm:   8px;
@@ -36,9 +64,79 @@
   --shadow-sm: 0 1px 0 oklch(0.88 0.010 60);
   --shadow:    0 1px 3px rgb(60 40 20 / 0.05), 0 0 0 1px var(--border);
   --shadow-lg: 0 1px 3px rgb(60 40 20 / 0.05), 0 8px 24px -8px rgb(60 40 20 / 0.08), 0 0 0 1px var(--border);
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-pop:  0 8px 24px rgb(0 0 0 / 0.12);
+  --shadow-menu: 0 14px 36px -16px rgb(0 0 0 / 0.22);
+  --shadow-drawer: -20px 0 50px -20px rgb(0 0 0 / 0.12);
 
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* -------------------------------------------------------------
+   Dark theme — data-theme is always written explicitly (see the
+   pre-paint script in index.html) so a manual choice beats the OS.
+   ------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --bg:           oklch(0.17 0.008 80);
+  --surface:      oklch(0.21 0.008 80);
+  --surface-2:    oklch(0.25 0.008 80);
+  --surface-3:    oklch(0.29 0.008 80);
+  --border:       oklch(0.32 0.008 60);
+  --border-2:     oklch(0.27 0.008 60);
+  --line:         oklch(0.27 0.008 60);
+
+  --text:         oklch(0.94 0.006 60);
+  --text-2:       oklch(0.82 0.006 60);
+  --muted:        oklch(0.66 0.006 60);
+  --subtle:       oklch(0.50 0.005 60);
+
+  /* Accents lift in lightness so they keep contrast on a dark ground */
+  --c-indigo:    oklch(0.70 0.15 265);
+  --c-blue:      oklch(0.72 0.12 240);
+  --c-violet:    oklch(0.72 0.14 295);
+  --c-teal:      oklch(0.75 0.10 200);
+  --c-amber:     oklch(0.80 0.13 75);
+  --c-green:     oklch(0.74 0.11 150);
+  --c-rose:      oklch(0.70 0.15 20);
+
+  --good:        oklch(0.72 0.13 145);
+  --bad:         oklch(0.68 0.17 25);
+  --warn-text:   oklch(0.82 0.13 75);
+
+  --accent-soft:        oklch(0.30 0.045 265);
+  --accent-soft-2:      oklch(0.33 0.055 265);
+  --accent-soft-border: oklch(0.42 0.07 265);
+  --on-accent:          oklch(0.16 0.010 60);
+
+  --brand-from: oklch(0.62 0.13 265);
+  --brand-to:   oklch(0.45 0.11 265);
+  --btn-primary-hover: oklch(0.86 0.006 60);
+  --track: oklch(0.36 0.008 80);
+  --knob:  oklch(0.92 0.004 80);
+  --scrim: oklch(0.08 0.005 80 / 0.55);
+
+  --heat-0:   oklch(0.245 0.006 80);
+  --heat-1:   oklch(0.36 0.07 265);   --heat-1-edge: oklch(0.41 0.08 265);
+  --heat-2:   oklch(0.48 0.11 265);   --heat-2-edge: oklch(0.53 0.12 265);
+  --heat-3:   oklch(0.62 0.15 265);   --heat-3-edge: oklch(0.67 0.16 265);
+  --heat-4:   oklch(0.78 0.16 265);   --heat-4-edge: oklch(0.83 0.14 265);
+  --gauge-track: oklch(0.28 0.008 80);
+
+  --tip-bg:     oklch(0.30 0.012 265 / 0.97);
+  --tip-border: oklch(0.46 0.02 265);
+  --tip-text:   oklch(0.97 0.005 80);
+  --tip-muted:  oklch(0.80 0.01 265);
+
+  --shadow-sm: 0 1px 0 oklch(0.28 0.010 60);
+  --shadow:    0 1px 3px rgb(0 0 0 / 0.35), 0 0 0 1px var(--border);
+  --shadow-lg: 0 1px 3px rgb(0 0 0 / 0.35), 0 8px 24px -8px rgb(0 0 0 / 0.5), 0 0 0 1px var(--border);
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-pop:  0 8px 24px rgb(0 0 0 / 0.5);
+  --shadow-menu: 0 14px 36px -16px rgb(0 0 0 / 0.7);
+  --shadow-drawer: -20px 0 50px -20px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -128,7 +226,7 @@ button, input, select { font-family: inherit; color: inherit; }
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, oklch(0.30 0.04 265), oklch(0.20 0.02 265));
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
   color: white;
   display: grid;
   place-items: center;
@@ -231,7 +329,7 @@ button, input, select { font-family: inherit; color: inherit; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 9px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-pop);
 }
 
 .quota-detail-row {
@@ -394,7 +492,7 @@ button, input, select { font-family: inherit; color: inherit; }
   color: var(--bg);
   border-color: var(--text);
 }
-.btn-primary:hover { background: oklch(0.25 0.005 80); border-color: oklch(0.25 0.005 80); }
+.btn-primary:hover { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); }
 
 .btn-icon {
   width: 30px; padding: 0;
@@ -494,7 +592,7 @@ button, input, select { font-family: inherit; color: inherit; }
 .chip.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  box-shadow: var(--shadow-chip);
 }
 
 .time-range {
@@ -509,8 +607,8 @@ button, input, select { font-family: inherit; color: inherit; }
 }
 
 .time-range.active {
-  background: oklch(0.97 0.02 265);
-  border-color: oklch(0.85 0.04 265);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
 }
 
 .time-sep {
@@ -537,8 +635,8 @@ button, input, select { font-family: inherit; color: inherit; }
 .dt-range-trigger:hover { background: var(--surface); }
 
 .dt-range-trigger.active {
-  background: oklch(0.97 0.02 265);
-  border-color: oklch(0.85 0.04 265);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
 }
 
 .dt-range-hint {
@@ -594,7 +692,7 @@ button, input, select { font-family: inherit; color: inherit; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 14px 36px -16px rgb(0 0 0 / 0.22), 0 0 0 1px color-mix(in oklab, var(--border), transparent 20%);
+  box-shadow: var(--shadow-menu), 0 0 0 1px color-mix(in oklab, var(--border), transparent 20%);
 }
 
 .dt-head {
@@ -669,14 +767,14 @@ button, input, select { font-family: inherit; color: inherit; }
 }
 
 .dt-day.in-range {
-  background: oklch(0.95 0.025 265);
+  background: var(--accent-soft-2);
   color: var(--text);
   border-radius: 0;
 }
 
 .dt-day.active {
   background: var(--c-indigo);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   border-radius: 6px;
 }
@@ -732,8 +830,8 @@ button, input, select { font-family: inherit; color: inherit; }
 }
 
 .dt-now:hover {
-  background: oklch(0.97 0.02 265);
-  border-color: oklch(0.85 0.04 265);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
 }
 
 .pill {
@@ -752,8 +850,8 @@ button, input, select { font-family: inherit; color: inherit; }
 }
 .pill:hover { background: var(--surface-2); }
 .pill.active {
-  background: oklch(0.97 0.02 265);
-  border-color: oklch(0.85 0.04 265);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
   color: var(--c-indigo);
 }
 .pill-dot {
@@ -804,9 +902,9 @@ button, input, select { font-family: inherit; color: inherit; }
   color: var(--text-2);
   cursor: pointer;
 }
-.toggle.on { background: oklch(0.97 0.02 265); border-color: oklch(0.85 0.04 265); color: var(--c-indigo); }
+.toggle.on { background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--c-indigo); }
 .toggle-slot {
-  width: 22px; height: 12px; background: oklch(0.88 0.004 80);
+  width: 22px; height: 12px; background: var(--track);
   border-radius: 999px; position: relative;
   transition: background 160ms ease;
 }
@@ -814,10 +912,10 @@ button, input, select { font-family: inherit; color: inherit; }
   content: '';
   position: absolute;
   width: 10px; height: 10px;
-  background: white;
+  background: var(--knob);
   border-radius: 50%;
   top: 1px; left: 1px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
   transition: transform 160ms ease;
 }
 .toggle.on .toggle-slot { background: var(--c-indigo); }
@@ -995,7 +1093,7 @@ button, input, select { font-family: inherit; color: inherit; }
 .tab.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 1px rgb(0 0 0 / 0.05);
+  box-shadow: var(--shadow-chip);
 }
 
 /* ─── Chart bodies ────────────────────────────────────────── */
@@ -1324,10 +1422,10 @@ button, input, select { font-family: inherit; color: inherit; }
 .heat-hour-bar > div {
   width: 100%;
   border-radius: 2px 2px 0 0;
-  background: oklch(0.63 0.15 265 / 0.75);
+  background: color-mix(in oklab, var(--c-indigo), transparent 25%);
   min-height: 0;
 }
-.heat-hour-bar:hover > div { background: oklch(0.48 0.18 265); }
+.heat-hour-bar:hover > div { background: var(--c-indigo); }
 .heat-cell:hover,
 .heat-cell:focus-visible {
   border-color: color-mix(in oklab, var(--text), transparent 25%);
@@ -1336,11 +1434,11 @@ button, input, select { font-family: inherit; color: inherit; }
   transform: scale(1.12);
   z-index: 2;
 }
-.heat-level-0 { background: oklch(0.955 0.006 80); }
-.heat-level-1 { background: oklch(0.88 0.055 265); border-color: oklch(0.84 0.06 265); }
-.heat-level-2 { background: oklch(0.76 0.10 265); border-color: oklch(0.72 0.11 265); }
-.heat-level-3 { background: oklch(0.63 0.15 265); border-color: oklch(0.59 0.16 265); }
-.heat-level-4 { background: oklch(0.48 0.18 265); border-color: oklch(0.44 0.18 265); }
+.heat-level-0 { background: var(--heat-0); }
+.heat-level-1 { background: var(--heat-1); border-color: var(--heat-1-edge); }
+.heat-level-2 { background: var(--heat-2); border-color: var(--heat-2-edge); }
+.heat-level-3 { background: var(--heat-3); border-color: var(--heat-3-edge); }
+.heat-level-4 { background: var(--heat-4); border-color: var(--heat-4-edge); }
 .heat-row-label,
 .heat-col-label {
   font-size: 10.5px;
@@ -1370,11 +1468,11 @@ button, input, select { font-family: inherit; color: inherit; }
   z-index: 10;
   min-width: 158px;
   padding: 9px 11px;
-  color: oklch(0.97 0.005 80);
-  background: oklch(0.20 0.012 265 / 0.96);
-  border: 1px solid oklch(0.34 0.02 265);
+  color: var(--tip-text);
+  background: var(--tip-bg);
+  border: 1px solid var(--tip-border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(20 18 30 / 0.20);
+  box-shadow: var(--shadow-pop);
   pointer-events: none;
   transform: translate(-50%, calc(-100% - 9px));
   text-align: left;
@@ -1392,6 +1490,18 @@ button, input, select { font-family: inherit; color: inherit; }
   border-bottom: 1px solid oklch(0.34 0.02 265);
   transform: translateX(-50%) rotate(45deg);
 }
+/* Flipped under the cell when the rows above leave no room. */
+.heat-tooltip-below {
+  transform: translate(-50%, 9px);
+}
+.heat-tooltip-below::after {
+  bottom: auto;
+  top: -5px;
+  border-right: none;
+  border-bottom: none;
+  border-left: 1px solid oklch(0.34 0.02 265);
+  border-top: 1px solid oklch(0.34 0.02 265);
+}
 .heat-tooltip strong,
 .heat-tooltip span,
 .heat-tooltip small { display: block; }
@@ -1407,7 +1517,7 @@ button, input, select { font-family: inherit; color: inherit; }
 }
 .heat-tooltip small {
   margin-top: 1px;
-  color: oklch(0.77 0.01 265);
+  color: var(--tip-muted);
   font-size: 10.5px;
 }
 
@@ -1598,7 +1708,7 @@ table.dt tbody tr {
   transition: background 100ms ease;
 }
 table.dt tbody tr:hover { background: var(--surface-2); }
-table.dt tbody tr.selected { background: oklch(0.97 0.02 265); }
+table.dt tbody tr.selected { background: var(--accent-soft); }
 
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .num-strong { font-weight: 600; }
@@ -1650,7 +1760,7 @@ table.dt tbody tr.selected { background: oklch(0.97 0.02 265); }
 }
 .status-ok    { background: color-mix(in oklab, var(--good), transparent 90%); color: var(--good); }
 .status-error { background: color-mix(in oklab, var(--bad),  transparent 90%); color: var(--bad);  }
-.status-warn  { background: color-mix(in oklab, var(--c-amber), transparent 85%); color: oklch(0.50 0.15 70); }
+.status-warn  { background: color-mix(in oklab, var(--c-amber), transparent 85%); color: var(--warn-text); }
 .status-empty { background: color-mix(in oklab, var(--muted), transparent 85%); color: var(--muted); }
 .status-skip  { background: color-mix(in oklab, var(--muted), transparent 85%); color: var(--muted); }
 
@@ -1658,7 +1768,7 @@ table.dt tbody tr.selected { background: oklch(0.97 0.02 265); }
 
 .drawer-backdrop {
   position: fixed; inset: 0;
-  background: oklch(0.18 0.005 80 / 0.30);
+  background: var(--scrim);
   backdrop-filter: blur(2px);
   z-index: 50;
   opacity: 0;
@@ -1674,7 +1784,7 @@ table.dt tbody tr.selected { background: oklch(0.97 0.02 265); }
   max-width: 92vw;
   background: var(--surface);
   border-left: 1px solid var(--border);
-  box-shadow: -20px 0 50px -20px rgb(0 0 0 / 0.12);
+  box-shadow: var(--shadow-drawer);
   z-index: 60;
   transform: translateX(100%);
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1779,6 +1889,15 @@ table.dt tbody tr.selected { background: oklch(0.97 0.02 265); }
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Collect pulls data down, so its icon nudges rather than spins. */
+.pulling {
+  animation: pulling 900ms ease-in-out infinite;
+}
+@keyframes pulling {
+  0%, 100% { transform: translateY(-1px); opacity: 0.5; }
+  50%      { transform: translateY(1px);  opacity: 1; }
 }
 
 /* responsive — small fallback */

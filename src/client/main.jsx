@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './dashboard/App.jsx';
 import { ReviewApp } from './review/ReviewApp.jsx';
+import { ThemeProvider } from './shared/theme.js';
 
 function Root() {
   if (window.location.pathname === '/review') {
@@ -12,4 +13,8 @@ function Root() {
   return <App />;
 }
 
-createRoot(document.getElementById('root')).render(<Root />);
+createRoot(document.getElementById('root')).render(
+  <ThemeProvider>
+    <Root />
+  </ThemeProvider>
+);

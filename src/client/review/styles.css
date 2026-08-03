@@ -26,9 +26,45 @@
   --good:      oklch(0.55 0.14 145);
   --bad:       oklch(0.55 0.18 25);
 
+  --bar-to:    oklch(0.45 0.18 280);   /* foot of the vertical accent bar */
+  --card-lift: oklch(0.985 0.006 80);  /* card face lifted off the paper */
+  --btn-solid-hover: oklch(0.25 0.010 60);
+
   --serif: 'Instrument Serif', 'Source Serif 4', Georgia, serif;
   --sans:  'Inter', system-ui, -apple-system, sans-serif;
   --mono:  'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+/* -------------------------------------------------------------
+   Dark theme — mirrors the dashboard's `data-theme` contract so a
+   single toggle drives both pages.
+   ------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --paper:        oklch(0.17 0.008 80);
+  --paper-2:      oklch(0.21 0.008 80);
+  --paper-3:      oklch(0.25 0.008 80);
+  --ink:          oklch(0.94 0.006 60);
+  --ink-2:        oklch(0.82 0.006 60);
+  --ink-3:        oklch(0.66 0.006 60);
+  --ink-soft:     oklch(0.50 0.005 60);
+
+  --rule:         oklch(0.32 0.008 60);
+  --rule-2:       oklch(0.27 0.008 60);
+
+  --indigo:    oklch(0.70 0.15 265);
+  --violet:    oklch(0.72 0.14 295);
+  --teal:      oklch(0.72 0.11 200);
+  --amber:     oklch(0.80 0.13 70);
+  --green:     oklch(0.72 0.12 145);
+  --bad:       oklch(0.70 0.16 25);
+  --rose:      oklch(0.70 0.16 25);
+  --good:      oklch(0.72 0.13 145);
+
+  --bar-to:    oklch(0.58 0.16 280);
+  --card-lift: oklch(0.225 0.008 80);
+  --btn-solid-hover: oklch(0.86 0.006 60);
+
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -54,7 +90,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(oklch(0.55 0.02 60 / 0.025) 1px, transparent 1px);
+    radial-gradient(color-mix(in oklab, var(--ink), transparent 97.5%) 1px, transparent 1px);
   background-size: 3px 3px;
   z-index: 0;
   opacity: 0.6;
@@ -285,7 +321,7 @@ section.story:last-of-type  { padding-bottom: 56px; }
   font-feature-settings: 'lnum', 'ss01';
   font-variant-numeric: lining-nums;
   display: inline-block;
-  background: linear-gradient(180deg, var(--indigo) 30%, oklch(0.45 0.18 280) 100%);
+  background: linear-gradient(180deg, var(--indigo) 30%, var(--bar-to) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -536,8 +572,8 @@ section.story:last-of-type  { padding-bottom: 56px; }
   box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.4);
   transform: translate(-50%, -120%);
 }
-.cal-tip b { color: oklch(0.85 0.05 70); }
-.cal-tip .dim { color: oklch(0.65 0.005 80); font-weight: 400; margin-left: 8px; }
+.cal-tip b { color: var(--amber); }
+.cal-tip .dim { color: var(--ink-3); font-weight: 400; margin-left: 8px; }
 
 .cal-scale {
   display: inline-flex; align-items: center; gap: 6px;
@@ -773,7 +809,7 @@ section.story:last-of-type  { padding-bottom: 56px; }
   position: relative;
 }
 .insight:hover {
-  background: oklch(0.985 0.006 80);
+  background: var(--card-lift);
   border-color: var(--rule);
 }
 .insight-head {
@@ -912,7 +948,7 @@ section.story:last-of-type  { padding-bottom: 56px; }
   font-size: 13px;
   font-weight: 500;
 }
-.export-btn:hover { background: oklch(0.25 0.010 60); }
+.export-btn:hover { background: var(--btn-solid-hover); }
 
 /* ─── Misc ───────────────────────────────────────────────── */
 

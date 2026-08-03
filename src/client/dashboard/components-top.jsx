@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { U } from '../shared/utils.js';
+import { ThemeToggle } from '../shared/ThemeToggle.jsx';
 import claudeIcon from './icons/claude.svg';
 import gptIcon from './icons/gpt.svg';
 import { sourceIcon, sourceIconScale } from './source-icons.js';
@@ -184,17 +185,11 @@ function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collec
           <span className="sync-dot"></span>
           <span>最后同步 <strong style={{color:'var(--text)', fontWeight:600}}>{lastSync}</strong></span>
         </div>
-        <button className="btn" onClick={() => alert('Settings · TODO')}>
-          <svg className="icon" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/>
-            <path d="M8 1v2M8 13v2M15 8h-2M3 8H1M13.07 2.93l-1.41 1.41M4.34 11.66l-1.41 1.41M13.07 13.07l-1.41-1.41M4.34 4.34L2.93 2.93" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-        </button>
+        <ThemeToggle />
         <button className={`btn btn-primary ${collecting ? 'loading' : ''}`} onClick={onCollect} disabled={collecting || refreshing}>
-          <svg className={`icon ${collecting ? 'spin' : ''}`} viewBox="0 0 16 16" fill="none" style={{opacity:1}}>
-            <path d="M4 6.5h8M4 9.5h8" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round"/>
-            <path d="M3.5 4.5c0-.83 2.01-1.5 4.5-1.5s4.5.67 4.5 1.5v7c0 .83-2.01 1.5-4.5 1.5s-4.5-.67-4.5-1.5v-7Z" stroke="currentColor" strokeWidth="1.35"/>
-            <circle cx="8" cy="8" r="1.25" fill="currentColor"/>
+          <svg className={`icon ${collecting ? 'pulling' : ''}`} viewBox="0 0 16 16" fill="none" style={{opacity:1}}>
+            <path d="M8 2.5v7.5M5 7.5 8 10.5l3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2.75 11.75v1c0 .41.34.75.75.75h9c.41 0 .75-.34.75-.75v-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
           </svg>
           {collecting ? '采集中' : '采集'}
         </button>

@@ -2,12 +2,13 @@
    Charts — Trend, Donut, TopModels, Heatmap, Gauge, Stat
    ============================================================= */
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import { U } from '../shared/utils.js';
 import { EChart } from '../shared/echart.jsx';
 import { Delta, Spark } from './components-top.jsx';
 import { sourceIcon, sourceIconScale } from './source-icons.js';
+import { chartPalette, useTheme } from '../shared/theme.js';
 
 // ───────────────────────────────────────────────────────────────
 // Trend chart — switchable bar/line/stacked + optional comparison
@@ -19,6 +20,10 @@ const TREND_MODES = [
 ];
 
 function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onModeChange, totals, prevTotals, onExport, density }) {
+  // ECharts paints to canvas, so chart chrome takes its colours from the
+  // palette rather than CSS variables.
+  const pal = chartPalette(useTheme().theme);
+
   // build series
   const byKey = useMemo(() => {
     const m = new Map();
@@ -120,8 +125,8 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
       type: 'line',
       smooth: 0.3,
       symbol: 'none',
-      lineStyle: { width: 1.2, color: 'oklch(0.72 0.005 80)', type: 'dashed', opacity: 0.55 },
-      itemStyle: { color: 'oklch(0.72 0.005 80)' },
+      lineStyle: { width: 1.2, color: pal.markLine, type: 'dashed', opacity: 0.55 },
+      itemStyle: { color: pal.markLine },
       ...stableLineState(1.2),
       data: dates.map((_, i) => compareSeries[i] || 0),
       z: 3
@@ -135,8 +140,8 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
       type: 'line',
       smooth: 0.5,
       symbol: 'none',
-      lineStyle: { width: 1.6, color: 'oklch(0.45 0.04 265)', type: [4, 4] },
-      itemStyle: { color: 'oklch(0.45 0.04 265)' },
+      lineStyle: { width: 1.6, color: pal.markLineCompare, type: [4, 4] },
+      itemStyle: { color: pal.markLineCompare },
       ...stableLineState(1.6),
       data: rolling,
       z: 4
@@ -151,24 +156,24 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
       trigger: 'axis',
       axisPointer: {
         type: 'line',
-        lineStyle: { color: 'oklch(0.62 0.04 265 / 0.45)', width: 1, type: [3, 3] }
+        lineStyle: { color: pal.crossHair, width: 1, type: [3, 3] }
       },
-      backgroundColor: '#ffffff',
-      borderColor: 'oklch(0.92 0.004 80)',
+      backgroundColor: pal.tooltipBg,
+      borderColor: pal.tooltipBorder,
       borderWidth: 1,
       padding: [10, 12],
-      textStyle: { color: 'oklch(0.18 0.005 80)', fontSize: 12 },
-      extraCssText: 'box-shadow: 0 8px 24px rgba(15,23,42,0.10); border-radius: 10px;',
+      textStyle: { color: pal.tooltipText, fontSize: 12 },
+      extraCssText: 'box-shadow: var(--shadow-pop); border-radius: 10px;',
       formatter(params) {
         const date = params[0]?.axisValue || '';
         let total = 0;
         for (const p of params) if (sources.includes(p.seriesName)) total += p.value || 0;
-        let html = `<div style="font-weight:600;margin-bottom:6px;color:oklch(0.40 0.005 80);font-size:11.5px;letter-spacing:.04em">${date}</div>`;
-        html += `<div style="font-size:16px;font-weight:600;margin-bottom:8px">${U.compactCN(total)} <span style="font-size:11px;color:oklch(0.55 0.005 80);font-weight:500"> tokens</span></div>`;
+        let html = `<div style="font-weight:600;margin-bottom:6px;color:${pal.tooltipLabel};font-size:11.5px;letter-spacing:.04em">${date}</div>`;
+        html += `<div style="font-size:16px;font-weight:600;margin-bottom:8px">${U.compactCN(total)} <span style="font-size:11px;color:${pal.tooltipMuted};font-weight:500"> tokens</span></div>`;
         for (const p of params) {
           html += `<div style="display:flex;align-items:center;gap:8px;margin-top:3px;font-size:12px">
             <span style="width:8px;height:8px;border-radius:2px;background:${p.color};display:inline-block"></span>
-            <span style="color:oklch(0.45 0.005 80);flex:1">${p.seriesName}</span>
+            <span style="color:${pal.tooltipSeries};flex:1">${p.seriesName}</span>
             <span style="font-weight:600;margin-left:18px;font-variant-numeric:tabular-nums">${U.compactCN(p.value || 0)}</span>
           </div>`;
         }
@@ -181,10 +186,10 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
       type: 'category',
       data: dates,
       boundaryGap: mode !== 'line',
-      axisLine: { lineStyle: { color: 'oklch(0.92 0.004 80)' } },
+      axisLine: { lineStyle: { color: pal.axisLine } },
       axisTick: { show: false },
       axisLabel: {
-        color: 'oklch(0.55 0.005 80)',
+        color: pal.axisLabel,
         fontSize: 10.5,
         hideOverlap: true,
         formatter: v => v.slice(5)
@@ -193,11 +198,11 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
     yAxis: {
       type: 'value',
       axisLabel: {
-        color: 'oklch(0.62 0.004 80)',
+        color: pal.axisLabelDim,
         fontSize: 10.5,
         formatter: v => U.compact(v)
       },
-      splitLine: { lineStyle: { color: 'oklch(0.95 0.004 80)' } },
+      splitLine: { lineStyle: { color: pal.splitLine } },
       axisLine: { show: false },
       axisTick: { show: false }
     },
@@ -208,11 +213,11 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
         height: 18,
         bottom: 4,
         borderColor: 'transparent',
-        backgroundColor: 'oklch(0.97 0.004 80)',
-        fillerColor: 'oklch(0.92 0.02 265 / 0.5)',
-        handleStyle: { color: '#fff', borderColor: 'oklch(0.55 0.16 265)' },
+        backgroundColor: pal.zoomBg,
+        fillerColor: pal.zoomFiller,
+        handleStyle: { color: pal.zoomHandle, borderColor: pal.zoomHandleEdge },
         moveHandleSize: 4,
-        textStyle: { color: 'oklch(0.55 0.005 80)', fontSize: 10 }
+        textStyle: { color: pal.tooltipMuted, fontSize: 10 }
       }
     ] : [],
     series
@@ -253,6 +258,7 @@ function TrendChart({ rows, dates, sources, compareRows, compareDates, mode, onM
 // Donut chart — source share
 // ───────────────────────────────────────────────────────────────
 function SourceDonut({ rows, sources, total, onFocusSource, focused }) {
+  const pal = chartPalette(useTheme().theme);
   const data = sources.map(src => {
     let v = 0;
     for (const r of rows) if (r.source === src) v += r.totalTokens;
@@ -268,14 +274,14 @@ function SourceDonut({ rows, sources, total, onFocusSource, focused }) {
       appendToBody: true,
       confine: true,
       transitionDuration: 0,
-      backgroundColor: '#fff',
-      borderColor: 'oklch(0.92 0.004 80)',
+      backgroundColor: pal.tooltipBg,
+      borderColor: pal.tooltipBorder,
       borderWidth: 1,
-      textStyle: { color: 'oklch(0.18 0.005 80)', fontSize: 12 },
+      textStyle: { color: pal.tooltipText, fontSize: 12 },
       extraCssText: 'pointer-events:none;box-shadow:0 8px 24px rgb(0 0 0 / 0.08);border-radius:8px;',
       formatter: p => `<div style="font-weight:600;margin-bottom:4px">${p.name}</div>
         <div style="font-size:14px;font-weight:600">${U.compactCN(p.value)} tokens</div>
-        <div style="font-size:11px;color:oklch(0.55 0.005 80)">${(p.percent || 0).toFixed(1)}%</div>`
+        <div style="font-size:11px;color:${pal.tooltipMuted}">${(p.percent || 0).toFixed(1)}%</div>`
     },
     series: [{
       type: 'pie',
@@ -292,7 +298,7 @@ function SourceDonut({ rows, sources, total, onFocusSource, focused }) {
       label: { show: false },
       labelLine: { show: false },
       itemStyle: {
-        borderColor: '#fff',
+        borderColor: pal.sliceBorder,
         borderWidth: 2,
         shadowBlur: 12,
         shadowOffsetY: 3,
@@ -323,7 +329,7 @@ function SourceDonut({ rows, sources, total, onFocusSource, focused }) {
               color: d.color,
               borderRadius,
               opacity: 1,
-              borderColor: '#fff',
+              borderColor: pal.sliceBorder,
               borderWidth: 2,
               shadowBlur: 12,
               shadowOffsetY: 3,
@@ -441,7 +447,10 @@ function TopModels({ rows, onDrillModel }) {
 // ───────────────────────────────────────────────────────────────
 function Heatmap({ rows, dates, loading = false, error = null }) {
   const [activeCell, setActiveCell] = useState(null);
+  const [tipBox, setTipBox] = useState(null);
   const gridRef = useRef(null);
+  const scrollRef = useRef(null);
+  const tipRef = useRef(null);
 
   const byCell = new Map();
   const byDate = new Map();
@@ -513,28 +522,66 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 
   const HOURS_LABELS = ['0', '', '', '', '4', '', '', '', '8', '', '', '', '12', '', '', '', '16', '', '', '', '20', '', '', ''];
 
+  // Gap between the cell and the tooltip body, wide enough for the arrow.
+  const TOOLTIP_GAP = 9;
+  // Keep the arrow off the rounded corners so it still reads as a pointer.
+  const ARROW_INSET = 14;
+
   const showTooltip = (event, date, hour, cell) => {
     const grid = gridRef.current;
     if (!grid) return;
 
     const gridRect = grid.getBoundingClientRect();
     const cellRect = event.currentTarget.getBoundingClientRect();
-    const dayTotal = byDate.get(date) || 0;
-    // Clamp inside the grid: an overflowing tooltip expands the scrollable
-    // area of .heatmap-scroll and pops a horizontal scrollbar on edge cells.
-    const half = 92;
-    const anchor = cellRect.left - gridRect.left + cellRect.width / 2;
-    const left = Math.min(Math.max(anchor, half), Math.max(half, gridRect.width - half));
     setActiveCell({
       date,
       hour,
       ...cell,
-      dayTotal,
-      left,
-      arrowShift: anchor - left,
-      top: cellRect.top - gridRect.top
+      dayTotal: byDate.get(date) || 0,
+      gridWidth: gridRect.width,
+      anchor: cellRect.left - gridRect.left + cellRect.width / 2,
+      cellTop: cellRect.top - gridRect.top,
+      cellBottom: cellRect.bottom - gridRect.top
     });
+    setTipBox(null);
   };
+
+  // The tooltip's own size decides where it can go, so place it only once it is
+  // in the DOM. Runs before paint, so the unmeasured pass is never visible.
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    const grid = gridRef.current;
+    const scroll = scrollRef.current;
+    if (!activeCell || !tip || !grid || !scroll) return;
+
+    const gridRect = grid.getBoundingClientRect();
+    const scrollRect = scroll.getBoundingClientRect();
+    const {width, height} = tip.getBoundingClientRect();
+
+    // Clamp inside the grid: an overflowing tooltip expands the scrollable
+    // area of .heatmap-scroll and pops a horizontal scrollbar on edge cells.
+    const half = width / 2;
+    const left = Math.min(
+      Math.max(activeCell.anchor, half),
+      Math.max(half, gridRect.width - half)
+    );
+    // The arrow tracks the cell, but it has to stay on the tooltip body —
+    // off the edge the rotated square loses its cover and reads as a diamond.
+    const maxShift = Math.max(0, half - ARROW_INSET);
+    const arrowShift = Math.min(Math.max(activeCell.anchor - left, -maxShift), maxShift);
+
+    // .heatmap-scroll scrolls on X, which forces overflow-y to clip as well, so
+    // the top rows have no room above them. Flip under the cell instead.
+    const roomAbove = gridRect.top - scrollRect.top + activeCell.cellTop;
+    const below = roomAbove < height + TOOLTIP_GAP;
+
+    setTipBox({
+      left,
+      arrowShift,
+      below,
+      top: below ? activeCell.cellBottom : activeCell.cellTop
+    });
+  }, [activeCell]);
 
   return (
     <div className="panel">
@@ -561,7 +608,7 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
       </div>
       <div className="heatmap-layout">
         <div className="heatmap-main">
-          <div className="heatmap-scroll">
+          <div className="heatmap-scroll" ref={scrollRef}>
             <div
               ref={gridRef}
               className="heatmap-grid"
@@ -619,9 +666,17 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 
               {activeCell && (
                 <div
-                  className="heat-tooltip"
+                  ref={tipRef}
+                  className={`heat-tooltip${tipBox?.below ? ' heat-tooltip-below' : ''}`}
                   role="tooltip"
-                  style={{left: activeCell.left, top: activeCell.top, '--arrow-shift': `${activeCell.arrowShift || 0}px`}}>
+                  style={{
+                    // Before measuring, park it mid-grid so it cannot widen the
+                    // scroll area, and keep it hidden until it is placed.
+                    left: tipBox ? tipBox.left : activeCell.gridWidth / 2,
+                    top: tipBox ? tipBox.top : activeCell.cellTop,
+                    visibility: tipBox ? 'visible' : 'hidden',
+                    '--arrow-shift': `${tipBox?.arrowShift || 0}px`
+                  }}>
                   <strong>{activeCell.date} · {String(activeCell.hour).padStart(2, '0')}:00</strong>
                   {activeCell.tokens > 0 ? (
                     <>
@@ -720,7 +775,7 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
       <div className="gauge">
         <div className="gauge-wrap">
           <svg viewBox="0 0 180 100" width="180" height="100">
-            <path d="M 10 90 A 80 80 0 0 1 170 90" stroke="oklch(0.95 0.004 80)" strokeWidth="14" fill="none" strokeLinecap="round"/>
+            <path d="M 10 90 A 80 80 0 0 1 170 90" stroke="var(--gauge-track)" strokeWidth="14" fill="none" strokeLinecap="round"/>
             <path
               d="M 10 90 A 80 80 0 0 1 170 90"
               stroke="url(#hitGrad)"
@@ -730,8 +785,8 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
             />
             <defs>
               <linearGradient id="hitGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="oklch(0.65 0.13 200)"/>
-                <stop offset="100%" stopColor="oklch(0.55 0.16 265)"/>
+                <stop offset="0%" stopColor="var(--c-teal)"/>
+                <stop offset="100%" stopColor="var(--c-indigo)"/>
               </linearGradient>
             </defs>
           </svg>
@@ -759,7 +814,7 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
         <div className="cache-trend-head">
           <span>每日命中率</span>
         </div>
-        <Spark values={hitRateSeries} color="oklch(0.65 0.11 200)" height={36}/>
+        <Spark values={hitRateSeries} color="var(--c-teal)" height={36}/>
       </div>
     </div>
   );

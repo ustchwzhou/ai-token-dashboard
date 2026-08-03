@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { U } from '../shared/utils.js';
 import { RU } from './utils.js';
+import { ThemeToggle } from '../shared/ThemeToggle.jsx';
 import { HeroSection, ProjectSection, CalendarSection } from './sections-1.jsx';
 import { ToolsSection, EfficiencySection, InsightsSection } from './sections-2.jsx';
 import './styles.css';
@@ -167,6 +168,7 @@ function ReviewDashboard({ rawData }) {
             ))}
           </div>
           <div className="nav-actions">
+            <ThemeToggle className="nav-btn" />
             <button className="nav-btn" onClick={() => window.print()}>
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                 <rect x="2.5" y="4.5" width="8" height="6" rx="1" stroke="currentColor" strokeWidth="1.3"/>
