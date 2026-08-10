@@ -1341,11 +1341,20 @@ button, input, select { font-family: inherit; color: inherit; }
 .cache-trend-head {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
   font-size: 10.5px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
+}
+/* The sparkline's own range — it does not start at zero. */
+.cache-trend-head small {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--subtle);
 }
 .cache-trend .kpi-spark {
   position: static;

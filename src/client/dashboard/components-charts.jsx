@@ -761,6 +761,11 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 // ───────────────────────────────────────────────────────────────
 function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitRateSeries }) {
   const r = Math.max(0, Math.min(100, rate));
+  // The sparkline below scales to its own range, so name that range rather than
+  // letting a non-zero floor imply the line starts at 0.
+  const span = hitRateSeries?.length
+    ? { lo: Math.min(...hitRateSeries), hi: Math.max(...hitRateSeries) }
+    : null;
 
   return (
     <div className="panel cache-card">
@@ -812,8 +817,10 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
       <div className="cache-trend">
         <div className="cache-trend-head">
           <span>每日命中率</span>
+          {span && <small>{span.lo.toFixed(1)}% – {span.hi.toFixed(1)}%</small>}
         </div>
-        <Spark values={hitRateSeries} color="var(--c-teal)" height={36}/>
+        {/* Scaled to its own range, so the label above states that range. */}
+        <Spark values={hitRateSeries} color="var(--c-teal)" height={36} baseline="auto"/>
       </div>
     </div>
   );
