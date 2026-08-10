@@ -9,6 +9,7 @@ import { EChart } from '../shared/echart.jsx';
 import { Delta, Spark } from './components-top.jsx';
 import { sourceIcon, sourceIconScale } from './source-icons.js';
 import { chartPalette, useTheme } from '../shared/theme.js';
+import { GAUGE, GAUGE_PATH, gaugeDash } from '../shared/gauge.js';
 
 // ───────────────────────────────────────────────────────────────
 // Trend chart — switchable bar/line/stacked + optional comparison
@@ -760,8 +761,6 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
 // ───────────────────────────────────────────────────────────────
 function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitRateSeries }) {
   const r = Math.max(0, Math.min(100, rate));
-  const C = Math.PI * 70;
-  const dash = (r / 100) * C;
 
   return (
     <div className="panel cache-card">
@@ -774,13 +773,13 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
       </div>
       <div className="gauge">
         <div className="gauge-wrap">
-          <svg viewBox="0 0 180 100" width="180" height="100">
-            <path d="M 10 90 A 80 80 0 0 1 170 90" stroke="var(--gauge-track)" strokeWidth="14" fill="none" strokeLinecap="round"/>
+          <svg viewBox={GAUGE.viewBox} width="180" height="100">
+            <path d={GAUGE_PATH} stroke="var(--gauge-track)" strokeWidth="14" fill="none" strokeLinecap="round"/>
             <path
-              d="M 10 90 A 80 80 0 0 1 170 90"
+              d={GAUGE_PATH}
               stroke="url(#hitGrad)"
               strokeWidth="14" fill="none" strokeLinecap="round"
-              strokeDasharray={`${dash} ${C}`}
+              strokeDasharray={gaugeDash(r)}
               style={{transition: 'stroke-dasharray 600ms cubic-bezier(0.22,1,0.36,1)'}}
             />
             <defs>
