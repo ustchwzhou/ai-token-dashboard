@@ -536,11 +536,17 @@ function MultiSelect({ options, selected, onChange, placeholder }) {
 // ───────────────────────────────────────────────────────────────
 // Sparkline SVG
 // ───────────────────────────────────────────────────────────────
-function Spark({ values, color, height = 30, fill = true }) {
+/**
+ * `baseline` picks the floor of the y-axis. Token counts are magnitudes, so
+ * they anchor at zero; a rate that lives between 89% and 97% would be flattened
+ * into a couple of pixels by a zero floor, so those pass 'auto' to let the
+ * series fill the box.
+ */
+function Spark({ values, color, height = 30, fill = true, baseline = 0 }) {
   if (!values || values.length === 0) return null;
   const w = 100, h = height;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
+  const max = Math.max(...values, baseline === 'auto' ? -Infinity : 1);
+  const min = baseline === 'auto' ? Math.min(...values) : Math.min(...values, 0);
   const range = max - min || 1;
   const pts = values.map((v, i) => {
     const x = (i / (values.length - 1 || 1)) * w;
