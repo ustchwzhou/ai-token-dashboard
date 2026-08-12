@@ -40,8 +40,12 @@ const COLUMNS = [
     render: r => <SourceTag source={r.source} />
   },
   {
-    field: 'inputTokens', title: 'Input Tokens', hozAlign: 'right', width: 110,
+    field: 'inputTokens', title: 'Input (uncached)', hozAlign: 'right', width: 120,
     render: r => <span className="mono">{U.fmt.format(r.inputTokens)}</span>
+  },
+  {
+    field: 'inputTotal', title: 'Input (total)', hozAlign: 'right', width: 110,
+    render: r => <span className="mono" title={`未命中 ${U.fmt.format(r.inputTokens)} + 缓存命中 ${U.fmt.format(r.cacheReadTokens || 0)}`}>{U.fmt.format((r.inputTokens || 0) + (r.cacheReadTokens || 0))}</span>
   },
   {
     field: 'outputTokens', title: 'Output Tokens', hozAlign: 'right', width: 110,

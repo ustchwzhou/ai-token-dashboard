@@ -182,11 +182,17 @@ function zeroTokens() {
   return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 };
 }
 
-function extractTokens(usage) {
+export function extractTokens(usage) {
+  // Command Code's inputTokens is TOTAL input (cache hits + misses), even
+  // though its own costUsd is computed as if it were all misses.  Split it so
+  // input carries only the cache-miss portion, matching the official billing:
+  //   total input = cacheReadTokens + input (miss)
+  const totalInput = usage.inputTokens || 0;
+  const cacheRead = usage.cacheReadTokens || 0;
   return {
-    input: usage.inputTokens || 0,
+    input: Math.max(0, totalInput - cacheRead),
     output: usage.outputTokens || 0,
-    cacheRead: usage.cacheReadTokens || 0,
+    cacheRead,
     cacheWrite: usage.cacheWriteTokens || 0,
     // Not emitted by Command Code today; kept for forward compatibility
     reasoning: usage.reasoningTokens || 0
@@ -286,10 +292,11 @@ function aggregateRecord(record, dailyMap, wmMap, pricingData, events) {
   const date = localDateFromTimestamp(record.timestamp);
   const model = normalizeModelForGrouping(record.model);
   const tokens = record.tokens || extractTokens(record.usage);
-  // Prefer the actual billed cost recorded by Command Code; fall back to
-  // pricing-table estimation when it is missing.
-  const calculatedCost = calculateCost(model, tokens, pricingData);
-  const costUSD = record.costUSD > 0 ? record.costUSD : calculatedCost;
+  // Command Code's recorded costUsd is unreliable: it bills the whole
+  // inputTokens (total input) at the miss rate, which overstates cost by
+  // ~50x for cache-heavy sessions.  Always compute from the official prices
+  // instead, using the split tokens above.
+  const costUSD = calculateCost(model, tokens, pricingData);
 
   if (keepTimeEvent(record.timestamp)) {
     events.push({

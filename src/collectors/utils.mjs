@@ -95,13 +95,14 @@ export function inferProviderFromModel(model) {
 /**
  * 计算统一 Token 总量。
  *
- * 总 Token 只统计实际计费的 Input + Output；缓存读写（cacheRead/cacheWrite）
- * 是输入的一部分（在部分数据源里已从 input 中拆分计量），reasoning 也是
- * output 的组成部分，均不重复计入总数，只作为明细列展示。
+ * 总 Token = 总输入（未命中 + 缓存命中）+ 输出。
+ * 各数据源的 input 字段统一为"未命中"语义（cache miss），因此总输入
+ * 需把 cacheRead 加回；reasoning 是 output 的组成部分，cacheWrite 是
+ * 输出侧写入缓存的计量，均不重复计入。
  *
  * @author fengguanghuai-jwk
  * @date 2026-07-10
  */
 export function tokenTotal(tokens, client = null) {
-  return tokens.input + tokens.output;
+  return tokens.input + tokens.cacheRead + tokens.output;
 }

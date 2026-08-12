@@ -77,7 +77,7 @@ test('parseSessionFile collapses duplicate message ids keeping max usage', async
   });
 });
 
-test('collect aggregates daily, workspace/model and events with costUsd priority', async () => {
+test('collect aggregates daily, workspace/model and events with split input', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'command-code-projects-'));
   try {
     const projectDir = join(dir, 'projects', 'd-work-000-ai-ai-token-dashboard');
@@ -100,18 +100,24 @@ test('collect aggregates daily, workspace/model and events with costUsd priority
       assert.equal(graphJson.contributions[0].clients[0].client, 'commandcode');
       assert.equal(graphJson.contributions[0].clients[0].modelId, 'deepseek/deepseek-v4-flash');
       assert.deepEqual(graphJson.contributions[0].clients[0].tokens, {
-        input: 65554,
+        // inputTokens is TOTAL input; input = total - cacheReadTokens
+        // a1: 31967-7936=24031, a2: 33587-33024=563 → 24031+563=24594
+        input: 24594,
         output: 440,
         cacheRead: 40960,
         cacheWrite: 0,
         reasoning: 0
       });
-      // costUsd summed, not re-estimated (pricingData is null → estimate would be 0)
-      assert.ok(Math.abs(graphJson.contributions[0].clients[0].cost - 0.009415448) < 1e-9);
+      // cost computed from official prices (input=miss $0.14/M, hit $0.0028/M,
+      // output $0.28/M); cmdc's own costUsd is deliberately ignored.
+      // a1: 24031*1.4e-7 + 7936*2.8e-9 + 314*2.8e-7 = 0.00347448
+      // a2: 563*1.4e-7 + 33024*2.8e-9 + 126*2.8e-7 = 0.00020657
+      // total = 0.003681048
+      assert.ok(Math.abs(graphJson.contributions[0].clients[0].cost - 0.003681048) < 1e-9);
 
       assert.equal(modelsJson.entries.length, 1);
       assert.equal(modelsJson.entries[0].workspaceKey, 'd-work-000-ai-ai-token-dashboard');
-      assert.equal(modelsJson.entries[0].input, 65554);
+      assert.equal(modelsJson.entries[0].input, 24594);
 
       assert.equal(eventsJson.events.length, 2);
       assert.equal(eventsJson.events[0].sessionId.endsWith('a1.jsonl'), true);
@@ -122,6 +128,16 @@ test('collect aggregates daily, workspace/model and events with costUsd priority
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('extractTokens treats inputTokens as total input (miss = total - cacheRead)', async () => {
+  // Mirrors the official dashboard: Input Tokens column is TOTAL input and the
+  // billed miss portion is input - cacheReadTokens.  The 450,458-token request
+  // from the official ledger had cacheReadTokens=450,432 → miss=26.
+  const { extractTokens } = await import('../src/collectors/command-code.mjs');
+  const usage = { inputTokens: 450458, outputTokens: 113, cacheReadTokens: 450432, cacheWriteTokens: 0 };
+  const t = extractTokens(usage);
+  assert.deepEqual(t, { input: 26, output: 113, cacheRead: 450432, cacheWrite: 0, reasoning: 0 });
 });
 
 test('getCommandCodeRoots prefers env vars over config defaults', () => {

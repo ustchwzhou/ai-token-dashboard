@@ -177,7 +177,10 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
         );
       }, width: 180
     },
-    { field: 'inputTokens', title: 'Input', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 80 },
+    { field: 'inputTokens', title: 'Input(uncached)', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 110 },
+    { field: 'inputTotal', title: 'Input(total)', hozAlign: 'right', render: r => (
+      <span title={`未命中 ${U.fmt.format(r.inputTokens)} + 缓存命中 ${U.fmt.format(r.cacheReadTokens)}`}>{U.compact((r.inputTokens || 0) + (r.cacheReadTokens || 0))}</span>
+    ), width: 100 },
     { field: 'outputTokens', title: 'Output', hozAlign: 'right', render: r => U.compact(r.outputTokens), width: 80 },
     { field: 'cacheReadTokens', title: 'Cache', hozAlign: 'right', render: r => U.compact(r.cacheReadTokens), width: 80 },
     { field: 'costUSD', title: '费用', hozAlign: 'right', render: r => (
@@ -191,7 +194,10 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
     )},
     { field: 'model', title: '模型', render: r => <span className="mono">{r.model}</span> },
     { field: 'dayCount', title: '活跃天', hozAlign: 'right', render: r => r.dayCount, width: 80 },
-    { field: 'inputTokens', title: 'Input', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 90 },
+    { field: 'inputTokens', title: 'Input(uncached)', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 120 },
+    { field: 'inputTotal', title: 'Input(total)', hozAlign: 'right', render: r => (
+      <span title={`未命中 ${U.fmt.format(r.inputTokens)} + 缓存命中 ${U.fmt.format(r.cacheReadTokens)}`}>{U.compact((r.inputTokens || 0) + (r.cacheReadTokens || 0))}</span>
+    ), width: 110 },
     { field: 'outputTokens', title: 'Output', hozAlign: 'right', render: r => U.compact(r.outputTokens), width: 90 },
     { field: 'cacheReadTokens', title: 'Cache Read', hozAlign: 'right', render: r => U.compact(r.cacheReadTokens), width: 110 },
     { field: 'totalTokens', title: 'Total', hozAlign: 'right', render: r => (
@@ -215,7 +221,10 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
     { field: 'lastActivity', title: '最后活动', render: r => (
       <span className="muted" style={{fontSize:11.5}}>{r.lastActivity}</span>
     ), width: 130 },
-    { field: 'inputTokens', title: 'Input', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 90 },
+    { field: 'inputTokens', title: 'Input(uncached)', hozAlign: 'right', render: r => U.compact(r.inputTokens), width: 120 },
+    { field: 'inputTotal', title: 'Input(total)', hozAlign: 'right', render: r => (
+      <span title={`未命中 ${U.fmt.format(r.inputTokens)} + 缓存命中 ${U.fmt.format(r.cacheReadTokens)}`}>{U.compact((r.inputTokens || 0) + (r.cacheReadTokens || 0))}</span>
+    ), width: 110 },
     { field: 'outputTokens', title: 'Output', hozAlign: 'right', render: r => U.compact(r.outputTokens), width: 90 },
     { field: 'totalTokens', title: 'Total', hozAlign: 'right', render: r => (
       <span className="num-strong">{U.fmt.format(r.totalTokens)}</span>
@@ -375,7 +384,8 @@ function DrillDrawer({ drill, daily, onClose }) {
 
                   <div className="detail-section">
                     <h4>分布</h4>
-                    <div className="detail-row"><span className="k">Input</span><span className="v">{U.fmt.format(detail.totals.inputTokens)}</span></div>
+                    <div className="detail-row"><span className="k">Input (total)</span><span className="v">{U.fmt.format((detail.totals.inputTokens || 0) + (detail.totals.cacheReadTokens || 0))}</span></div>
+                    <div className="detail-row"><span className="k">Input (uncached)</span><span className="v">{U.fmt.format(detail.totals.inputTokens)}</span></div>
                     <div className="detail-row"><span className="k">Output</span><span className="v">{U.fmt.format(detail.totals.outputTokens)}</span></div>
                     <div className="detail-row"><span className="k">Cache Read</span><span className="v">{U.fmt.format(detail.totals.cacheReadTokens)}</span></div>
                     <div className="detail-row"><span className="k">Cache Creation</span><span className="v">{U.fmt.format(detail.totals.cacheCreationTokens)}</span></div>

@@ -136,6 +136,7 @@ function ReviewDashboard({ rawData }) {
       { title: 'model', field: 'model' },
       { title: 'project', field: 'projectPath' },
       { title: 'input', field: 'inputTokens' },
+      { title: 'input_total', value: r => (r.inputTokens || 0) + (r.cacheReadTokens || 0) },
       { title: 'output', field: 'outputTokens' },
       { title: 'cache_read', field: 'cacheReadTokens' },
       { title: 'cache_creation', field: 'cacheCreationTokens' },
