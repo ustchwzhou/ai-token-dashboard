@@ -76,8 +76,8 @@ test('regular session keeps token events from its first second', async () => {
   });
 });
 
-test('Codex total does not add reasoning twice', () => {
+test('Codex total counts input + output only (cache/reasoning excluded)', () => {
   const tokens = { input: 25, output: 4, cacheRead: 5, cacheWrite: 0, reasoning: 1 };
-  assert.equal(tokenTotal(tokens, 'codex'), 34);
-  assert.equal(tokenTotal(tokens, 'other'), 35);
+  assert.equal(tokenTotal(tokens, 'codex'), 29);
+  assert.equal(tokenTotal(tokens, 'other'), 29);
 });

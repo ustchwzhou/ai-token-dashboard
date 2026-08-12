@@ -25,6 +25,19 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { join } from 'node:path';
 
+/**
+ * Resolve the base directory for an agent's credential files.
+ * Priority: the agent's own env var → ${AI_TOKEN_DASHBOARD_COLLECTOR_HOME}
+ * (relocated-home setups) → the user's home directory.
+ */
+function agentHomeDir(envName, dotName) {
+  if (process.env[envName]) return process.env[envName];
+  if (process.env.AI_TOKEN_DASHBOARD_COLLECTOR_HOME) {
+    return join(process.env.AI_TOKEN_DASHBOARD_COLLECTOR_HOME, dotName);
+  }
+  return join(homedir(), dotName);
+}
+
 const KNOWN_TIERS = ['five_hour', 'seven_day', 'seven_day_opus', 'seven_day_sonnet'];
 
 // Public OAuth client identifiers the official CLIs ship with (needed for refresh).
@@ -120,7 +133,7 @@ function readClaudeCreds() {
     } catch { /* not in keychain — fall through to file */ }
   }
   try {
-    const path = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), '.credentials.json');
+    const path = join(agentHomeDir('CLAUDE_CONFIG_DIR', '.claude'), '.credentials.json');
     const creds = parseClaudeJson(readFileSync(path, 'utf8'));
     if (creds) creds.source = { kind: 'file', path };
     return creds;
@@ -196,7 +209,7 @@ async function refreshClaude(creds) {
 function readClaudeProfile() {
   const candidates = [];
   if (process.env.CLAUDE_CONFIG_DIR) candidates.push(join(process.env.CLAUDE_CONFIG_DIR, '.claude.json'));
-  candidates.push(join(homedir(), '.claude.json'));
+  candidates.push(join(agentHomeDir('CLAUDE_CONFIG_DIR', '.claude'), '.claude.json'));
   for (const path of candidates) {
     try {
       const a = JSON.parse(readFileSync(path, 'utf8'))?.oauthAccount;
@@ -214,7 +227,7 @@ function readClaudeProfile() {
 // ─── Codex credentials: ~/.codex/auth.json ───
 function readCodexAuth() {
   try {
-    const path = join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'auth.json');
+    const path = join(agentHomeDir('CODEX_HOME', '.codex'), 'auth.json');
     const o = JSON.parse(readFileSync(path, 'utf8'));
     const t = o?.tokens || {};
     const token = t.access_token || o?.access_token || null;

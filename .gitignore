@@ -12,3 +12,5 @@ dist/
 !.env.example
 .claude/
 .superpowers/
+.commandcode/
+

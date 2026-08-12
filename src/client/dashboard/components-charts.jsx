@@ -433,7 +433,7 @@ function TopModels({ rows, onDrillModel }) {
             </div>
             <div className="bar-value">
               {U.compactCN(m.total)}
-              <small>{m.cost > 0 ? U.fmtUS.format(m.cost) : '—'}</small>
+              <small>{m.cost > 0 ? U.fmtCost(m.cost) : '—'}</small>
             </div>
           </div>
           );
@@ -682,7 +682,7 @@ function Heatmap({ rows, dates, loading = false, error = null }) {
                   {activeCell.tokens > 0 ? (
                     <>
                       <span>{U.compactCN(activeCell.tokens)} tokens</span>
-                      <small>{activeCell.events} 条记录 · {U.fmtUS.format(activeCell.cost)}</small>
+                      <small>{activeCell.events} 条记录 · {U.fmtCost(activeCell.cost)}</small>
                       <small>当日总量 {U.compactCN(activeCell.dayTotal)}</small>
                     </>
                   ) : (
@@ -772,7 +772,7 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
       <div className="panel-header">
         <div>
           <h2 className="panel-title">缓存命中率</h2>
-          <p className="panel-sub">cache_read / total</p>
+          <p className="panel-sub">cache_read / (cache_read + input)</p>
         </div>
         <Delta value={U.deltaPct(rate, prevRate)} />
       </div>
@@ -810,7 +810,7 @@ function Gauge({ rate, cacheRead, cacheCreation, total, prevRate, savedUSD, hitR
 
       <div className="cache-saved">
         <div className="cache-saved-label">缓存节省费用</div>
-        <div className="cache-saved-num">≈ {U.fmtUS.format(savedUSD || 0)}</div>
+        <div className="cache-saved-num">≈ {U.fmtCost(savedUSD || 0)}</div>
         <div className="cache-saved-sub">若无缓存需多付的估算金额</div>
       </div>
 

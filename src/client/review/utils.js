@@ -134,7 +134,8 @@ function aggregateBy(rows, key) {
   return Array.from(m.values()).map(v => ({
     ...v,
     dayCount: v.days.size,
-    cacheHitRate: v.totalTokens ? (v.cacheReadTokens / v.totalTokens) * 100 : 0
+    cacheHitRate: (v.cacheReadTokens + v.inputTokens)
+      ? (v.cacheReadTokens / (v.cacheReadTokens + v.inputTokens)) * 100 : 0
   }));
 }
 
@@ -192,6 +193,7 @@ function buildInsights(daily, period, prevDaily) {
   const insights = [];
   const totals = {
     total: sumField(daily, 'totalTokens'),
+    input: sumField(daily, 'inputTokens'),
     cost:  sumField(daily, 'costUSD'),
     cache: sumField(daily, 'cacheReadTokens'),
     avgDaily: 0
@@ -244,9 +246,10 @@ function buildInsights(daily, period, prevDaily) {
   // 3. Cache hit improvement
   if (prevDaily && prevDaily.length) {
     const prevCache = sumField(prevDaily, 'cacheReadTokens');
-    const prevTotal = sumField(prevDaily, 'totalTokens');
-    const prevRate = prevTotal ? (prevCache / prevTotal) * 100 : 0;
-    const currRate = totals.total ? (totals.cache / totals.total) * 100 : 0;
+    const prevInput = sumField(prevDaily, 'inputTokens');
+    const prevRate = (prevCache + prevInput) ? (prevCache / (prevCache + prevInput)) * 100 : 0;
+    const currRate = (totals.cache + totals.input)
+      ? (totals.cache / (totals.cache + totals.input)) * 100 : 0;
     const diff = currRate - prevRate;
     if (Math.abs(diff) > 2) {
       insights.push({

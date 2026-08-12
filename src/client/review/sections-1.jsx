@@ -28,7 +28,7 @@ function HeroSection({ period, totals, prevTotals, stats }) {
       </h1>
 
       <p className="hero-sub">
-        折合费用 <b style={{color: 'var(--ink)', fontVariantNumeric: 'tabular-nums'}}>{U.fmtUS.format(totals.cost)}</b>
+        折合费用 <b style={{color: 'var(--ink)', fontVariantNumeric: 'tabular-nums'}}>{U.fmtCost(totals.cost)}</b>
         {delta != null && (
           <>
             ，比上一周期
@@ -71,8 +71,8 @@ function HeroSection({ period, totals, prevTotals, stats }) {
         </div>
         <div className="stat-cell">
           <div className="l">日均费用</div>
-          <div className="v">{U.fmtUS.format(stats.avgDailyCost)}</div>
-          <div className="s">{stats.activeDays} 天 / {U.fmtUS.format(totals.cost)}</div>
+          <div className="v">{U.fmtCost(stats.avgDailyCost)}</div>
+          <div className="s">{stats.activeDays} 天 / {U.fmtCost(totals.cost)}</div>
         </div>
       </div>
     </section>
@@ -144,7 +144,7 @@ function ProjectSection({ daily, totalTokens }) {
               </div>
               <div className="proj-val">
                 <div className="big">{U.compactCN(p.totalTokens)}</div>
-                <div className="small">{p.costUSD > 0 ? U.fmtUS.format(p.costUSD) : '免费'}</div>
+                <div className="small">{p.costUSD > 0 ? U.fmtCost(p.costUSD) : '免费'}</div>
               </div>
             </div>
           );

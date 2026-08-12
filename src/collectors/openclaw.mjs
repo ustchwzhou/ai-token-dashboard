@@ -26,6 +26,7 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { existsSync }              from 'node:fs';
+import { homedir }                 from 'node:os';
 import { join, basename, extname } from 'node:path';
 import { configuredPaths } from '../collector-config.mjs';
 import { calculateCost } from '../pricing.mjs';
@@ -42,7 +43,19 @@ const CACHE_VERSION = 1;   // bump when parseSessionFile output shape changes
 
 /** All roots that may contain OpenClaw agent data. */
 function getAgentRoots() {
-  return configuredPaths('openclaw', 'agentRoots');
+  // OPENCLAW_HOME overrides the primary root; configured roots win over the
+  // code-level defaults so relocated setups can point elsewhere.
+  if (process.env.OPENCLAW_HOME) {
+    return [join(process.env.OPENCLAW_HOME, 'agents')];
+  }
+  const configured = configuredPaths('openclaw', 'agentRoots');
+  if (configured.length) return configured;
+  return [
+    join(homedir(), '.openclaw', 'agents'),
+    join(homedir(), '.clawdbot', 'agents'),
+    join(homedir(), '.moltbot', 'agents'),
+    join(homedir(), '.moldbot', 'agents')
+  ];
 }
 
 // ---------------------------------------------------------------------------

@@ -158,7 +158,7 @@ function QuotaBars({ quota }) {
 // ───────────────────────────────────────────────────────────────
 // Topbar
 // ───────────────────────────────────────────────────────────────
-function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collectStatus }) {
+function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collectStatus, pricingStatus, onPricingUpdate, updatingPricing, currency, onToggleCurrency }) {
   return (
     <div className="topbar">
       <div className="topbar-left">
@@ -172,6 +172,7 @@ function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collec
         <div className="page-switch">
           <span className="page-chip active">看板</span>
           <a href="/review" className="page-chip">复盘</a>
+          <a href="/usage" className="page-chip">流水</a>
         </div>
       </div>
       <div className="topbar-right">
@@ -186,6 +187,16 @@ function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collec
           <span>最后同步 <strong style={{color:'var(--text)', fontWeight:600}}>{lastSync}</strong></span>
         </div>
         <ThemeToggle />
+        <button className="btn btn-ghost" onClick={onToggleCurrency} title="切换美元/人民币显示">
+          {currency === 'cny' ? '¥' : '$'}
+        </button>
+        <button
+          className={`btn btn-ghost ${updatingPricing ? 'loading' : ''}`}
+          onClick={onPricingUpdate}
+          disabled={updatingPricing}
+          title={pricingStatus?.message || '从 LiteLLM / OpenRouter 拉取最新单价'}>
+          {updatingPricing ? '更新中…' : '更新单价'}
+        </button>
         <button className={`btn btn-primary ${collecting ? 'loading' : ''}`} onClick={onCollect} disabled={collecting || refreshing}>
           <svg className={`icon ${collecting ? 'pulling' : ''}`} viewBox="0 0 16 16" fill="none" style={{opacity:1}}>
             <path d="M8 2.5v7.5M5 7.5 8 10.5l3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>

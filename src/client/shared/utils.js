@@ -21,6 +21,9 @@ const PALETTE = {
   // Gemini → amber
   'Gemini CLI':         'oklch(0.72 0.14 75)',
   'Gemini CLI (JS)':    'oklch(0.72 0.14 75)',
+  // Command Code → rust/brick (shares Claude family warmth)
+  'Command Code':       'oklch(0.58 0.14 40)',
+  'Command Code (JS)':  'oklch(0.58 0.14 40)',
   // Cursor → sky
   'Cursor':             'oklch(0.68 0.12 220)',
   // Aider → green
@@ -50,6 +53,43 @@ function getSourceColor(name) {
 const fmt   = new Intl.NumberFormat('zh-CN');
 const fmtUS = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtUS4 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 });
+const fmtCNY = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtCNY4 = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+// USD → CNY rate: injected by the server via window.__ENV__.USD_CNY_RATE,
+// overridable per-browser via localStorage so users can adjust locally.
+// Guarded for non-browser (test) environments.
+const hasStorage = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+const USD_CNY_RATE = (() => {
+  const injected = hasStorage ? window.__ENV__?.USD_CNY_RATE : null;
+  const stored = hasStorage ? Number(localStorage.getItem('ts:usd-cny-rate') || 0) : 0;
+  if (stored > 0) return stored;
+  if (Number(injected) > 0) return Number(injected);
+  return 7.15;
+})();
+
+const CURRENCY_KEY = 'ts:currency';
+function getCurrency() {
+  if (!hasStorage) return 'usd';
+  return localStorage.getItem(CURRENCY_KEY) === 'cny' ? 'cny' : 'usd';
+}
+function setCurrency(currency) {
+  if (!hasStorage) return;
+  localStorage.setItem(CURRENCY_KEY, currency === 'cny' ? 'cny' : 'usd');
+}
+
+/** Format a USD amount in the user's chosen currency ($ or ¥). */
+function fmtCost(usd) {
+  const value = Number(usd || 0);
+  if (getCurrency() === 'cny') return fmtCNY.format(value * USD_CNY_RATE);
+  return fmtUS.format(value);
+}
+/** Like fmtCost but keeps up to 4 fraction digits (tiny per-call costs). */
+function fmtCost4(usd) {
+  const value = Number(usd || 0);
+  if (getCurrency() === 'cny') return fmtCNY4.format(value * USD_CNY_RATE);
+  return fmtUS4.format(value);
+}
 
 function compact(v) {
   if (v == null) return '—';
@@ -211,8 +251,16 @@ function aggregateTotals(rows) {
     reasoningTokens: reason,
     costUSD: cost,
     cacheSavedUSD: saved,
-    cacheHitRate: total ? (cacheRd / total) * 100 : 0
+    cacheHitRate: cacheHitRate(cacheRd, inp)
   };
+}
+
+// Cache hit ratio = cache reads / (cache reads + input misses) × 100.
+// cacheReadTokens and inputTokens are disjoint in all data sources (input
+// excludes cache hits), so their sum is the full input sent to the model.
+function cacheHitRate(cacheRead, input) {
+  const denom = cacheRead + input;
+  return denom ? (cacheRead / denom) * 100 : 0;
 }
 
 // Group by date + dimension
@@ -262,9 +310,11 @@ function alpha(color, a) {
 
 export const U = {
   PALETTE, PALETTE_FALLBACK, getSourceColor,
-  fmt, fmtUS, fmtUS4,
+  fmt, fmtUS, fmtUS4, fmtCNY, fmtCNY4,
+  fmtCost, fmtCost4, getCurrency, setCurrency, USD_CNY_RATE,
   compact, compactCN, pct, deltaPct, formatTs,
   localDateStr, toDateTimeLocalValue, startOfDayLocal, endOfDayLocal, daysAgo, addDays, rangeDates,
   filterDaily, filterTime, aggregateTotals, groupByDate, uniqueValues,
+  cacheHitRate,
   downloadCSV, projectLabel, alpha
 };

@@ -1,5 +1,5 @@
 import './load-env.mjs';
-import { createReadStream, existsSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
@@ -35,6 +35,16 @@ let activeCollection = null;
 let collectionState = {
   status: 'idle',
   message: '尚未启动采集',
+  startedAt: null,
+  finishedAt: null,
+  exitCode: null,
+  stdout: '',
+  stderr: ''
+};
+let activePricingUpdate = null;
+let pricingState = {
+  status: 'idle',
+  message: '尚未更新单价',
   startedAt: null,
   finishedAt: null,
   exitCode: null,
@@ -146,7 +156,8 @@ async function handleApi(req, url, res) {
         ...r,
         message: r.message ? r.message.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim() : '',
         device: r.device ? r.device.replace(/\.local$/, '').replace(/^(.{30}).+$/, '$1…') : r.device
-      }))
+      })),
+      pricingFetchedAt: pricingFetchedAt()
     });
     return;
   }
@@ -172,6 +183,61 @@ async function handleApi(req, url, res) {
         FROM time_usage
         ORDER BY event_time DESC
       `)
+    });
+    return;
+  }
+  if (url.pathname === '/api/usage') {
+    // Paged per-call usage feed for the /usage page (mirrors the official
+    // commandcode.ai usage table). Optional source/model filters keep the
+    // payload small; pages are ordered newest-first.
+    const limit = Math.min(Number(url.searchParams.get('limit') || 200), 2000);
+    const offset = Math.max(Number(url.searchParams.get('offset') || 0), 0);
+    const source = url.searchParams.get('source') || '';
+    const model = url.searchParams.get('model') || '';
+
+    const where = [];
+    const params = [];
+    if (source) { where.push('source = ?'); params.push(source); }
+    if (model)  { where.push('model = ?');  params.push(model); }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const timeId = apiRowIdExpression(db.driver, ['device', 'source', 'event_key']);
+    const countRow = await db.get(
+      `SELECT COUNT(*) AS n FROM time_usage ${whereSql}`,
+      params
+    );
+    // Distinct source/model lists for the filter dropdowns — derived from the
+    // whole table (not just the current page) so every source is selectable.
+    const sources = (await all(
+      `SELECT DISTINCT source FROM time_usage WHERE source IS NOT NULL AND source != '' ORDER BY source`
+    )).map(r => r.source);
+    const models = (await all(
+      `SELECT DISTINCT model FROM time_usage WHERE model IS NOT NULL AND model != '' ORDER BY model`
+    )).map(r => r.model);
+    sendJson(res, {
+      total: countRow?.n || 0,
+      limit, offset,
+      sources, models,
+      time: await all(`
+        SELECT ${timeId} AS id, device, source,
+          event_time AS ${as('eventTime')},
+          usage_date AS ${as('usageDate')},
+          model,
+          project_path AS ${as('projectPath')},
+          session_id AS ${as('sessionId')},
+          event_key AS ${as('eventKey')},
+          input_tokens AS ${as('inputTokens')},
+          output_tokens AS ${as('outputTokens')},
+          cache_creation_tokens AS ${as('cacheCreationTokens')},
+          cache_read_tokens AS ${as('cacheReadTokens')},
+          reasoning_output_tokens AS ${as('reasoningOutputTokens')},
+          total_tokens AS ${as('totalTokens')},
+          cost_usd AS ${as('costUSD')}
+        FROM time_usage
+        ${whereSql}
+        ORDER BY event_time DESC
+        LIMIT ? OFFSET ?
+      `, [...params, limit, offset])
     });
     return;
   }
@@ -212,6 +278,17 @@ async function handleApi(req, url, res) {
     sendJson(res, collectionState);
     return;
   }
+  if (url.pathname === '/api/pricing/update' && req.method === 'POST') {
+    handlePricingUpdate(req, res);
+    return;
+  }
+  if (url.pathname === '/api/pricing/status') {
+    sendJson(res, {
+      ...pricingState,
+      fetchedAt: pricingFetchedAt()
+    });
+    return;
+  }
   sendJson(res, { error: 'Not found' }, 404);
 }
 
@@ -228,6 +305,95 @@ function handleCollect(req, res) {
 
   startCollection({ reason: 'manual' });
   sendJson(res, collectionState, 202);
+}
+
+function handlePricingUpdate(req, res) {
+  const proxied = ['x-forwarded-for', 'x-forwarded-host', 'x-real-ip', 'forwarded']
+    .some(header => req.headers[header]);
+  if (!isLoopback(req.socket.remoteAddress) || proxied) {
+    sendJson(res, { error: '单价更新接口仅允许本机访问' }, 403);
+    return;
+  }
+
+  const started = startPricingUpdate();
+  if (!started) {
+    sendJson(res, { error: '已有单价更新正在运行' }, 409);
+    return;
+  }
+  sendJson(res, pricingState, 202);
+}
+
+function startPricingUpdate() {
+  if (activePricingUpdate) return false;
+
+  const child = spawn(process.execPath, ['src/update-pricing.mjs'], {
+    cwd: process.cwd(),
+    env: { ...process.env, PRICING_REFRESH: '1' },
+    windowsHide: true
+  });
+
+  activePricingUpdate = child;
+  let stdout = '';
+  let stderr = '';
+  const startedAt = new Date().toISOString();
+  pricingState = {
+    status: 'running',
+    message: '正在从 LiteLLM / OpenRouter 更新单价',
+    startedAt,
+    finishedAt: null,
+    exitCode: null,
+    stdout: '',
+    stderr: ''
+  };
+
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', chunk => { stdout += chunk; });
+  child.stderr.on('data', chunk => { stderr += chunk; });
+
+  child.on('error', error => {
+    activePricingUpdate = null;
+    pricingState = {
+      ...pricingState,
+      status: 'error',
+      message: error.message,
+      finishedAt: new Date().toISOString(),
+      stderr: error.message
+    };
+  });
+
+  child.on('close', async code => {
+    activePricingUpdate = null;
+    pricingState = {
+      status: code === 0 ? 'ok' : 'error',
+      message: code === 0 ? '单价更新完成' : '单价更新失败',
+      exitCode: code,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      stdout: trimOutput(stdout),
+      stderr: trimOutput(stderr)
+    };
+    // Reload the in-memory pricing so subsequent /api/data estimates use the
+    // freshly fetched rates without a server restart.
+    if (code === 0) {
+      try {
+        pricingData.data = (await loadPricing(resolve(process.cwd(), 'data', 'pricing-litellm.json'))).data;
+      } catch (error) {
+        console.warn(`[pricing] reload after update failed: ${error.message}`);
+      }
+    }
+  });
+
+  return true;
+}
+
+/** Read the latest fetchedAt from the bundled pricing caches, if present. */
+function pricingFetchedAt() {
+  try {
+    const raw = JSON.parse(readFileSync(resolve(process.cwd(), 'data', 'pricing-litellm.json'), 'utf8'));
+    if (raw?.fetchedAt) return raw.fetchedAt;
+  } catch { /* fall through */ }
+  return null;
 }
 
 function startCollection({ reason = 'manual' } = {}) {
@@ -413,7 +579,7 @@ function serveStatic(pathname, res) {
   } catch {
     decoded = pathname;
   }
-  const filePath = decoded === '/' || decoded === '/review'
+  const filePath = decoded === '/' || decoded === '/review' || decoded === '/usage'
     ? join(staticDir, 'index.html')
     : join(staticDir, decoded);
   // Require the resolved path to live under staticDir. The trailing separator
@@ -425,6 +591,17 @@ function serveStatic(pathname, res) {
     return;
   }
   res.writeHead(200, { 'content-type': contentType(filePath) });
+  if (filePath === join(staticDir, 'index.html')) {
+    // Inject runtime env for the client (e.g. USD_CNY_RATE) before </head>.
+    const html = readFileSync(filePath, 'utf8');
+    const env = { USD_CNY_RATE: Number(process.env.USD_CNY_RATE || 7.15) };
+    const injected = html.replace(
+      '</head>',
+      `<script>window.__ENV__=${JSON.stringify(env)}</script></head>`
+    );
+    res.end(injected);
+    return;
+  }
   createReadStream(filePath).pipe(res);
 }
 

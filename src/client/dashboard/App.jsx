@@ -160,6 +160,72 @@ export function App() {
       });
   }, [waitForCollectDone]);
 
+  // ───── Pricing update (刷新单价按钮) ─────
+  const [updatingPricing, setUpdatingPricing] = useState(false);
+  const [pricingStatus, setPricingStatus] = useState(null);
+  const [pricingFetchedAt, setPricingFetchedAt] = useState(null);
+  const [currency, setCurrencyState] = useState(U.getCurrency());
+
+  const syncPricingStatus = useCallback(() => {
+    return fetch('/api/pricing/status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.fetchedAt) setPricingFetchedAt(data.fetchedAt);
+        if (data.status === 'running') {
+          setUpdatingPricing(true);
+          setPricingStatus({ type: 'running', message: data.message || '正在更新单价…' });
+        } else if (data.status === 'ok') {
+          setUpdatingPricing(false);
+          setPricingStatus({ type: 'ok', message: data.message || '单价更新完成' });
+        } else if (data.status === 'error') {
+          setUpdatingPricing(false);
+          setPricingStatus({ type: 'error', message: data.stderr || data.message || '单价更新失败' });
+        } else {
+          setUpdatingPricing(false);
+        }
+        return data;
+      })
+      .catch(() => ({}));
+  }, []);
+
+  const waitForPricingDone = useCallback(async () => {
+    for (;;) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const data = await syncPricingStatus();
+      if (data.status !== 'running') {
+        if (data.status === 'ok') loadData();   // fees recomputed with fresh prices
+        return data;
+      }
+    }
+  }, [syncPricingStatus, loadData]);
+
+  const runPricingUpdate = useCallback(() => {
+    setUpdatingPricing(true);
+    setPricingStatus({ type: 'running', message: '正在从 LiteLLM / OpenRouter 更新单价…' });
+    fetch('/api/pricing/update', { method: 'POST' })
+      .then(async r => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok && r.status !== 202) {
+          throw new Error(data.error || data.stderr || `HTTP ${r.status}`);
+        }
+        return waitForPricingDone();
+      })
+      .catch(err => {
+        setUpdatingPricing(false);
+        setPricingStatus({ type: 'error', message: err.message || '单价更新失败' });
+      });
+  }, [waitForPricingDone]);
+
+  const toggleCurrency = useCallback(() => {
+    const next = U.getCurrency() === 'cny' ? 'usd' : 'cny';
+    U.setCurrency(next);
+    setCurrencyState(next);
+  }, []);
+
+  useEffect(() => {
+    syncPricingStatus();
+  }, [syncPricingStatus]);
+
   // ───── Loading / error screens ─────
   if (loadError) {
     return (
@@ -209,14 +275,19 @@ export function App() {
       quota={quota}
       onRefresh={loadData}
       onCollect={runCollect}
-      onNeedTime={ensureTime} />
+      onNeedTime={ensureTime}
+      pricingStatus={pricingStatus}
+      onPricingUpdate={runPricingUpdate}
+      updatingPricing={updatingPricing}
+      currency={currency}
+      onToggleCurrency={toggleCurrency} />
   );
 }
 
 /* =============================================================
    Dashboard (extracted so App stays clean)
    ============================================================= */
-function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh, onCollect, onNeedTime }) {
+function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh, onCollect, onNeedTime, pricingStatus, onPricingUpdate, updatingPricing, currency, onToggleCurrency }) {
   // ───── Filter state ─────
   const [filters, setFilters] = useState(() => ({
     rangeId: '30d',
@@ -326,15 +397,15 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
 
   // Daily cache hit-rate series for the gauge card sparkline
   const hitRateSeries = useMemo(() => {
-    const read = new Map(), tot = new Map();
+    const read = new Map(), inp = new Map();
     for (const r of filtered) {
       read.set(r.usageDate, (read.get(r.usageDate) || 0) + (r.cacheReadTokens || 0));
-      tot.set(r.usageDate, (tot.get(r.usageDate) || 0) + r.totalTokens);
+      inp.set(r.usageDate, (inp.get(r.usageDate) || 0) + (r.inputTokens || 0));
     }
-    // Only days with usage — a zero-usage day is not a 0% hit rate.
+    // Only days with input — a zero-usage day is not a 0% hit rate.
     return dates
-      .filter(d => (tot.get(d) || 0) > 0)
-      .map(d => ((read.get(d) || 0) / tot.get(d)) * 100);
+      .filter(d => (read.get(d) || 0) + (inp.get(d) || 0) > 0)
+      .map(d => U.cacheHitRate(read.get(d) || 0, inp.get(d) || 0));
   }, [filtered, dates]);
 
   // ───── Sessions filtered ─────
@@ -398,7 +469,12 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
         refreshing={refreshing}
         onCollect={onCollect}
         collecting={collecting}
-        collectStatus={collectStatus} />
+        collectStatus={collectStatus}
+        pricingStatus={pricingStatus}
+        onPricingUpdate={onPricingUpdate}
+        updatingPricing={updatingPricing}
+        currency={currency}
+        onToggleCurrency={onToggleCurrency} />
 
       <FilterBar
         f={filters}
@@ -443,7 +519,7 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
           sub={`命中 ${totals.cacheHitRate.toFixed(0)}%`}
           delta={U.deltaPct(totals.cacheTokens, compareData.totals?.cacheTokens)}
           sparkValues={sparkBy('cacheReadTokens')} sparkColor="oklch(0.65 0.11 200)" />
-        <KPI label="估算费用" value={U.fmtUS.format(totals.costUSD)}
+        <KPI label="估算费用" value={U.fmtCost(totals.costUSD)}
           sub="累计"
           delta={U.deltaPct(totals.costUSD, compareData.totals?.costUSD)}
           sparkValues={sparkBy('costUSD')} sparkColor="oklch(0.72 0.14 75)" />

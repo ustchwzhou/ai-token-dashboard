@@ -23,11 +23,18 @@ const EVENT_HISTORY_DAYS = Number(process.env.TIME_USAGE_HISTORY_DAYS || 90);
 const EVENT_CUTOFF_MS = Date.now() - EVENT_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 
 function opencodeDataDir() {
-  return configuredPath(
-    'opencode',
-    'dataDir',
-    `${homedir()}/.local/share/opencode`
-  );
+  const configured = configuredPath('opencode', 'dataDir');
+  if (configured) return configured;
+
+  // OpenCode 1.x writes its SQLite store under the platform data dir.
+  // Honour XDG_DATA_HOME when set (common on Linux/WSL), then fall back to
+  // the historical ~/.local/share/opencode layout.
+  if (process.env.XDG_DATA_HOME) {
+    const xdg = expandPath(process.env.XDG_DATA_HOME);
+    if (xdg) return join(xdg, 'opencode');
+  }
+
+  return `${homedir()}/.local/share/opencode`;
 }
 
 function legacyMessageDir() {

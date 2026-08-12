@@ -58,13 +58,18 @@ const CURSOR_OVERRIDES = {
 };
 
 /**
- * DeepSeek official compatibility aliases can lag in upstream pricing caches.
+ * DeepSeek official pricing. Kept as a safety net when upstream caches lag;
+ * the in-app "更新单价" button refreshes the LiteLLM/OpenRouter caches.
  * Prices are per-token ($/1M ÷ 1_000_000).
- * Source: https://api-docs.deepseek.com/quick_start/pricing
+ * Sources: https://api-docs.deepseek.com/quick_start/pricing
+ *   deepseek-chat (V3.2):      $0.28 / $0.42 / cache hit $0.028  (2025-09)
+ *   deepseek-reasoner (R1):    $0.55 / $2.19 / cache hit $0.14
+ *   deepseek-v4-flash:         $0.14 / $0.28 / cache hit $0.0028
+ *   deepseek-v4-pro:           $0.435 / $0.87 / cache hit $0.003625
  */
 const DEEPSEEK_OVERRIDES = {
-  'deepseek-chat': { input: 1.4e-7, output: 2.8e-7, cacheRead: 2.8e-9 },
-  'deepseek-reasoner': { input: 1.4e-7, output: 2.8e-7, cacheRead: 2.8e-9 },
+  'deepseek-chat': { input: 2.8e-7, output: 4.2e-7, cacheRead: 2.8e-8 },
+  'deepseek-reasoner': { input: 5.5e-7, output: 2.19e-6, cacheRead: 1.4e-7 },
   'deepseek-v4-flash': { input: 1.4e-7, output: 2.8e-7, cacheRead: 2.8e-9 },
   'deepseek-v4-pro': { input: 4.35e-7, output: 8.7e-7, cacheRead: 3.625e-9 }
 };
@@ -164,7 +169,8 @@ export function calculateCost(model, tokens, pricingData, provider = null, optio
   if (options.tiered === false) {
     return (
       input * validPrice(p.input) +
-      (output + reasoning) * validPrice(p.output) +
+      output * validPrice(p.output) +
+      reasoning * validPrice(p.reasoning ?? p.output) +
       cacheRead * validPrice(p.cacheRead) +
       cacheWrite * validPrice(p.cacheWrite)
     );
@@ -177,11 +183,17 @@ export function calculateCost(model, tokens, pricingData, provider = null, optio
       [256_000, p.inputAbove256k],
       [272_000, p.inputAbove272k]
     ]) +
-    tieredCost(output + reasoning, p.output, [
+    tieredCost(output, p.output, [
       [128_000, p.outputAbove128k],
       [200_000, p.outputAbove200k],
       [256_000, p.outputAbove256k],
       [272_000, p.outputAbove272k]
+    ]) +
+    tieredCost(reasoning, p.reasoning ?? p.output, [
+      [128_000, p.reasoningAbove128k ?? p.outputAbove128k],
+      [200_000, p.reasoningAbove200k ?? p.outputAbove200k],
+      [256_000, p.reasoningAbove256k ?? p.outputAbove256k],
+      [272_000, p.reasoningAbove272k ?? p.outputAbove272k]
     ]) +
     tieredCost(cacheRead, p.cacheRead, [
       [200_000, p.cacheReadAbove200k],
@@ -582,6 +594,11 @@ function litellmEntryToRates(entry) {
     outputAbove200k:    entry.output_cost_per_token_above_200k_tokens,
     outputAbove256k:    entry.output_cost_per_token_above_256k_tokens,
     outputAbove272k:    entry.output_cost_per_token_above_272k_tokens,
+    reasoning:          entry.output_cost_per_reasoning_token ?? null,
+    reasoningAbove128k: entry.output_cost_per_reasoning_token_above_128k_tokens ?? null,
+    reasoningAbove200k: entry.output_cost_per_reasoning_token_above_200k_tokens ?? null,
+    reasoningAbove256k: entry.output_cost_per_reasoning_token_above_256k_tokens ?? null,
+    reasoningAbove272k: entry.output_cost_per_reasoning_token_above_272k_tokens ?? null,
     cacheRead:          entry.cache_read_input_token_cost ?? 0,
     cacheReadAbove200k: entry.cache_read_input_token_cost_above_200k_tokens,
     cacheReadAbove272k: entry.cache_read_input_token_cost_above_272k_tokens,

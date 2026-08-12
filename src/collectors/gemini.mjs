@@ -21,6 +21,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, extname, basename } from 'node:path';
+import { configuredPath } from '../collector-config.mjs';
 import { calculateCost } from '../pricing.mjs';
 import { localDateFromTimestamp, normalizeModelForGrouping } from './utils.mjs';
 import { cachedParse, flushCache } from './parse-cache.mjs';
@@ -34,6 +35,13 @@ const CACHE_VERSION = 1;   // bump when parsed event shape changes
 // ---------------------------------------------------------------------------
 
 function getTmpDir() {
+  // GEMINI_HOME overrides the base dir; otherwise fall back to the
+  // gemini.tmpDir config (or the default ~/.gemini/tmp).
+  if (process.env.GEMINI_HOME) {
+    return join(process.env.GEMINI_HOME, 'tmp');
+  }
+  const configured = configuredPath('gemini', 'tmpDir');
+  if (configured) return configured;
   return join(homedir(), '.gemini', 'tmp');
 }
 

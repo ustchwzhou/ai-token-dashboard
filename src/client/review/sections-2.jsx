@@ -120,7 +120,7 @@ function ToolsSection({ daily, totalTokens }) {
               <div className="tool-stats">
                 <div>
                   <div className="tokens">{U.compactCN(t.totalTokens)}</div>
-                  <div className="cost">{t.costUSD > 0 ? U.fmtUS.format(t.costUSD) : '免费'}</div>
+                  <div className="cost">{t.costUSD > 0 ? U.fmtCost(t.costUSD) : '免费'}</div>
                 </div>
                 <span className="tool-badge" title="Cache hit rate">
                   <svg viewBox="0 0 12 12" fill="none">
@@ -151,7 +151,8 @@ function EfficiencySection({ daily, period }) {
     reasoning: RU.sumField(daily, 'reasoningOutputTokens')
   }), [daily]);
 
-  const cacheRate = totals.total ? (totals.cacheRead / totals.total) * 100 : 0;
+  const cacheRate = (totals.cacheRead + totals.input)
+    ? (totals.cacheRead / (totals.cacheRead + totals.input)) * 100 : 0;
   const ioRatio   = totals.output ? totals.input / totals.output : 0;
   const reasonPct = totals.total ? (totals.reasoning / totals.total) * 100 : 0;
 
@@ -161,13 +162,13 @@ function EfficiencySection({ daily, period }) {
   const cacheSeries = useMemo(() => {
     const m = new Map();
     for (const r of daily) {
-      const x = m.get(r.usageDate) || { tot: 0, cr: 0 };
-      x.tot += r.totalTokens; x.cr += r.cacheReadTokens;
+      const x = m.get(r.usageDate) || { inp: 0, cr: 0 };
+      x.inp += r.inputTokens; x.cr += r.cacheReadTokens;
       m.set(r.usageDate, x);
     }
     return daysArr.map(d => {
       const x = m.get(d.date);
-      return x && x.tot ? (x.cr / x.tot) * 100 : 0;
+      return x && (x.cr + x.inp) ? (x.cr / (x.cr + x.inp)) * 100 : 0;
     });
   }, [daily, daysArr]);
 

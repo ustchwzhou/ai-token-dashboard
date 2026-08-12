@@ -95,13 +95,13 @@ export function inferProviderFromModel(model) {
 /**
  * 计算统一 Token 总量。
  *
- * Codex 的 output 已包含 reasoning，reasoning 字段仅作为明细展示；
- * 其他来源保持原有的独立 reasoning 计数语义。
+ * 总 Token 只统计实际计费的 Input + Output；缓存读写（cacheRead/cacheWrite）
+ * 是输入的一部分（在部分数据源里已从 input 中拆分计量），reasoning 也是
+ * output 的组成部分，均不重复计入总数，只作为明细列展示。
  *
  * @author fengguanghuai-jwk
  * @date 2026-07-10
  */
 export function tokenTotal(tokens, client = null) {
-  const reasoning = client === 'codex' ? 0 : tokens.reasoning;
-  return tokens.input + tokens.output + tokens.cacheRead + tokens.cacheWrite + reasoning;
+  return tokens.input + tokens.output;
 }

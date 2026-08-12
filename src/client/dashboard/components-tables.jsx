@@ -181,7 +181,7 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
     { field: 'outputTokens', title: 'Output', hozAlign: 'right', render: r => U.compact(r.outputTokens), width: 80 },
     { field: 'cacheReadTokens', title: 'Cache', hozAlign: 'right', render: r => U.compact(r.cacheReadTokens), width: 80 },
     { field: 'costUSD', title: '费用', hozAlign: 'right', render: r => (
-      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtUS.format(r.costUSD)}</span> : <span className="muted">—</span>
+      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtCost(r.costUSD)}</span> : <span className="muted">—</span>
     ), width: 90 }
   ];
 
@@ -198,7 +198,7 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
       <span className="num-strong">{U.fmt.format(r.totalTokens)}</span>
     ), width: 130 },
     { field: 'costUSD', title: '费用', hozAlign: 'right', render: r => (
-      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtUS4.format(r.costUSD)}</span> : <span className="muted">—</span>
+      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtCost4(r.costUSD)}</span> : <span className="muted">—</span>
     ), width: 100 }
   ];
 
@@ -221,7 +221,7 @@ function TablePanel({ daily, sessions, runs, sources, totalTokens, onDrill }) {
       <span className="num-strong">{U.fmt.format(r.totalTokens)}</span>
     ), width: 130 },
     { field: 'costUSD', title: '费用', hozAlign: 'right', render: r => (
-      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtUS4.format(r.costUSD)}</span> : <span className="muted">—</span>
+      r.costUSD > 0 ? <span style={{color:'var(--c-amber)'}}>{U.fmtCost4(r.costUSD)}</span> : <span className="muted">—</span>
     ), width: 100 }
   ];
 
@@ -359,7 +359,7 @@ function DrillDrawer({ drill, daily, onClose }) {
                     <div className="drawer-kpi">
                       <div className="l">费用</div>
                       <div className="v" style={{color: detail.totals.costUSD > 0 ? 'var(--c-amber)' : 'var(--muted)'}}>
-                        {detail.totals.costUSD > 0 ? U.fmtUS.format(detail.totals.costUSD) : '—'}
+                        {detail.totals.costUSD > 0 ? U.fmtCost(detail.totals.costUSD) : '—'}
                       </div>
                     </div>
                     <div className="drawer-kpi">

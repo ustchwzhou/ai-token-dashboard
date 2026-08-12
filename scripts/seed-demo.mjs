@@ -136,7 +136,8 @@ async function main() {
         const reasoningOutputTokens = model.startsWith('gpt') ? Math.round(outputTokens * rnd() * 0.7) : 0;
         const tokens = {
           inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, reasoningOutputTokens,
-          totalTokens: inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens + reasoningOutputTokens
+          // Total = input + output only (cache/reasoning shown as separate detail columns)
+          totalTokens: inputTokens + outputTokens
         };
         const costUSD = costOf(model, tokens);
 

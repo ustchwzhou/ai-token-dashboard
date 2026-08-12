@@ -85,7 +85,7 @@ function ReviewDashboard({ rawData }) {
     const cost = RU.sumField(daily, 'costUSD');
     return {
       total, input, output, cacheRead, cacheCreation, reasoning, cost,
-      cacheHitRate: total ? (cacheRead / total) * 100 : 0
+      cacheHitRate: (cacheRead + input) ? (cacheRead / (cacheRead + input)) * 100 : 0
     };
   }, [daily]);
 
@@ -156,6 +156,7 @@ function ReviewDashboard({ rawData }) {
             <div className="page-switch">
               <a href="/" className="page-chip">看板</a>
               <span className="page-chip active">复盘</span>
+              <a href="/usage" className="page-chip">流水</a>
             </div>
           </div>
           <div className="period-switch">

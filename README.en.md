@@ -23,7 +23,7 @@ Reads session logs directly from your machine, aggregates them into a local SQLi
 
 ## Features
 
-- **Multi-source collection** — Claude Code, Codex CLI, OpenCode, Gemini CLI, Hermes Agent, OpenClaw
+- **Multi-source collection** — Claude Code, Codex CLI, OpenCode, Gemini CLI, Hermes Agent, OpenClaw, Command Code
 - **Two views** — interactive usage dashboard (`/`) and a printable retrospective page (`/review`)
 - **Light / dark theme** — follows the OS by default, toggles from the top-right, and the choice is remembered locally across both pages
 - **Cost tracking** — per-model cost estimation via bundled LiteLLM + OpenRouter pricing caches
@@ -36,16 +36,48 @@ Reads session logs directly from your machine, aggregates them into a local SQLi
 
 ## Supported Data Sources
 
-| Tool | Data location |
-|------|--------------|
-| [Claude Code](https://claude.ai/code) | `~/.claude/projects/` |
-| [Codex CLI](https://github.com/openai/codex) | `~/.codex/sessions/` |
-| [OpenCode](https://github.com/sst/opencode) | `~/.local/share/opencode/` |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/tmp/` |
-| Hermes Agent | `~/.hermes/state.db` (or `$HERMES_HOME/state.db`) |
-| OpenClaw | `~/.openclaw/agents/` |
+| Tool | Data location | Env override |
+|------|--------------|--------------|
+| [Claude Code](https://claude.ai/code) | `~/.claude/projects/` | `CLAUDE_CONFIG_DIR` |
+| [Codex CLI](https://github.com/openai/codex) | `~/.codex/sessions/` | `CODEX_HOME` |
+| [OpenCode](https://github.com/sst/opencode) | `~/.local/share/opencode/` (or `$XDG_DATA_HOME/opencode`) | `XDG_DATA_HOME`, `OPENCODE_DB` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/tmp/` | `GEMINI_HOME`, `gemini.tmpDir` config |
+| Hermes Agent | `~/.hermes/state.db` | `HERMES_HOME` |
+| OpenClaw | `~/.openclaw/agents/` | `OPENCLAW_HOME`, `openclaw.agentRoots` config |
+| [Command Code](https://commandcode.ai) | `~/.commandcode/projects/` | `COMMANDCODE_HOME` / `CMDC_HOME` |
+
+**Path resolution priority**: the tool's own env var → the matching block in
+`config/collectors.json` → `${AI_TOKEN_DASHBOARD_COLLECTOR_HOME}` (point this
+at the root of a relocated data directory) → the `~` default.
+
+`config/collectors.json` supports `~`, `${VAR}` and `$VAR` expansion. If you
+relocated your agent config/data off the home directory (e.g. to another
+drive), set `AI_TOKEN_DASHBOARD_COLLECTOR_HOME` to the migration root:
+
+```bash
+# Windows: all agent data lives under D:\relocated\home
+AI_TOKEN_DASHBOARD_COLLECTOR_HOME=D:\relocated\home
+```
 
 Only the tools you actually have installed will produce data — others are silently skipped.
+
+### Token semantics
+
+- **Total = Input + Output**; cache read/write and reasoning tokens are shown
+  as separate detail columns and are not double-counted.
+- **Cache hit ratio = Cache Read / (Cache Read + Input)** (all sources report
+  input excluding cache hits).
+
+### Cost & currency
+
+- Costs follow official per-token rates per model (input / output / cache hit /
+  cache write / reasoning), from the bundled LiteLLM + OpenRouter caches
+  (`data/pricing-*.json`).
+- The top-bar **更新单价 (refresh prices)** button fetches the latest rates
+  online and recomputes; historical daily costs stay locked once written.
+- The top-bar `$ / ¥` toggle switches between USD and CNY display. The default
+  rate is 7.15; override with the `USD_CNY_RATE` env var or per-browser
+  `localStorage` key `ts:usd-cny-rate`.
 
 ---
 

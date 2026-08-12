@@ -36,16 +36,37 @@
 
 ## 支持的数据源
 
-| 工具 | 数据位置 |
-|------|---------|
-| [Claude Code](https://claude.ai/code) | `~/.claude/projects/` |
-| [Codex CLI](https://github.com/openai/codex) | `~/.codex/sessions/` |
-| [OpenCode](https://github.com/sst/opencode) | `~/.local/share/opencode/` |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/tmp/` |
-| Hermes Agent | `~/.hermes/state.db`（或 `$HERMES_HOME/state.db`） |
-| OpenClaw | `~/.openclaw/agents/` |
+| 工具 | 数据位置 | 环境变量覆盖 |
+|------|---------|-------------|
+| [Claude Code](https://claude.ai/code) | `~/.claude/projects/` | `CLAUDE_CONFIG_DIR` |
+| [Codex CLI](https://github.com/openai/codex) | `~/.codex/sessions/` | `CODEX_HOME` |
+| [OpenCode](https://github.com/sst/opencode) | `~/.local/share/opencode/`（或 `$XDG_DATA_HOME/opencode`） | `XDG_DATA_HOME`、`OPENCODE_DB` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/tmp/` | `GEMINI_HOME`、`gemini.tmpDir` 配置 |
+| Hermes Agent | `~/.hermes/state.db` | `HERMES_HOME` |
+| OpenClaw | `~/.openclaw/agents/` | `OPENCLAW_HOME`、`openclaw.agentRoots` 配置 |
+| [Command Code](https://commandcode.ai) | `~/.commandcode/projects/` | `COMMANDCODE_HOME` / `CMDC_HOME` |
+
+**路径解析优先级**（除特殊注明外）：工具自身环境变量 → `config/collectors.json` 对应配置块 → `${AI_TOKEN_DASHBOARD_COLLECTOR_HOME}`（数据目录被迁移到别处时统一指向迁移根）→ `~` 默认路径。
+
+`config/collectors.json` 支持 `~`、`${VAR}`、`$VAR` 展开。当配置/数据被迁移出主目录（如迁移到其他盘符）时，设置 `AI_TOKEN_DASHBOARD_COLLECTOR_HOME` 指向迁移根即可，例如：
+
+```bash
+# Windows：所有 agent 数据都在 D:\WSL2Backup\cache_mv 下
+AI_TOKEN_DASHBOARD_COLLECTOR_HOME=D:\WSL2Backup\cache_mv
+```
 
 只有实际安装了对应工具才会产生数据，未安装的会被静默跳过。
+
+### Token 计算口径
+
+- **总 Token = Input + Output**；缓存读取/写入（Cache Read/Write）与推理 Token（Reasoning）作为独立明细列展示，不重复计入总数
+- **缓存命中率 = Cache Read / (Cache Read + Input)**（各数据源的 input 均不含已命中的缓存部分）
+
+### 费用计算与货币
+
+- 按各模型官方每 token 单价计算（输入 / 输出 / 缓存命中 / 缓存写入 / 推理各有独立单价），数据来自 LiteLLM + OpenRouter 聚合缓存（`data/pricing-*.json`）
+- 顶栏「更新单价」按钮会联网拉取最新价格并刷新计算；历史日期的费用会被锁定，不随价格刷新漂移
+- 顶栏 `$ / ¥` 按钮切换美元 / 人民币显示，汇率默认 7.15，可用 `USD_CNY_RATE` 环境变量或浏览器 localStorage（`ts:usd-cny-rate`）覆盖
 
 ---
 

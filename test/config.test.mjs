@@ -13,6 +13,15 @@ test('expandPath expands ~ and environment variables', () => {
   delete process.env.EXPAND_TEST_DIR;
 });
 
+test('expandPath resolves AI_TOKEN_DASHBOARD_COLLECTOR_HOME for relocated homes', () => {
+  process.env.AI_TOKEN_DASHBOARD_COLLECTOR_HOME = 'D:\\relocated\\home';
+  assert.equal(
+    expandPath('${AI_TOKEN_DASHBOARD_COLLECTOR_HOME}/.commandcode'),
+    'D:\\relocated\\home/.commandcode'
+  );
+  delete process.env.AI_TOKEN_DASHBOARD_COLLECTOR_HOME;
+});
+
 test('expandPath returns null for empty/invalid input', () => {
   assert.equal(expandPath(''), null);
   assert.equal(expandPath('   '), null);

@@ -71,10 +71,18 @@ export function expandPath(value) {
   }
 
   expanded = expanded.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, name) => {
-    return process.env[name] || '';
+    if (!process.env[name]) {
+      console.warn(`[collector-config] environment variable "${name}" is not set; "${value}" expands to an empty segment`);
+      return '';
+    }
+    return process.env[name];
   });
   expanded = expanded.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (_, name) => {
-    return process.env[name] || '';
+    if (!process.env[name]) {
+      console.warn(`[collector-config] environment variable "${name}" is not set; "${value}" expands to an empty segment`);
+      return '';
+    }
+    return process.env[name];
   });
 
   return expanded;

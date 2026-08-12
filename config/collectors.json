@@ -31,7 +31,6 @@
       "dbPath": "~/.hermes/state.db"
     },
     "opencode": {
-      "dataDir": "~/.local/share/opencode",
       "extraDbPaths": []
     },
     "openclaw": {
@@ -40,6 +39,11 @@
         "~/.clawdbot/agents",
         "~/.moltbot/agents",
         "~/.moldbot/agents"
+      ]
+    },
+    "commandcode": {
+      "roots": [
+        "${AI_TOKEN_DASHBOARD_COLLECTOR_HOME}/.commandcode"
       ]
     }
   }
