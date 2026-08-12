@@ -14,7 +14,8 @@ const COLLECTORS = [
   { module: './collectors/opencode.mjs', label: 'OpenCode' },
   { module: './collectors/gemini.mjs', label: 'Gemini CLI' },
   { module: './collectors/openclaw.mjs', label: 'OpenClaw' },
-  { module: './collectors/command-code.mjs', label: 'Command Code' }
+  { module: './collectors/command-code.mjs', label: 'Command Code' },
+  { module: './collectors/cc-switch.mjs', label: 'CC-Switch' }
 ];
 
 const args = parseArgs(process.argv.slice(2));
@@ -130,6 +131,7 @@ function normalizeTimeRows(json, deviceName) {
       eventTime,
       usageDate,
       model,
+      provider: entry.provider || '',
       projectPath: entry.workspaceLabel || entry.projectPath || entry.workspaceKey || null,
       sessionId: entry.sessionId || null,
       inputTokens: tokens.input,
@@ -166,18 +168,22 @@ function normalizeDailyRows(json, deviceName) {
     const clients = Array.isArray(day.clients) ? day.clients : [];
     return clients.map((entry) => {
       const tokens = normalizeTokens(entry.tokens);
+      const model = entry.modelId || entry.model_id || 'unknown';
+      // Free-tier models (provider "opencode" or -free suffix) cost nothing
+      const isFree = entry.provider === 'opencode' || /-free$/i.test(model);
       return {
         device: deviceName,
         source: sourceLabel(entry.client),
         usageDate: day.date,
-        model: entry.modelId || entry.model_id || 'unknown',
+        model,
+        provider: entry.provider || '',
         inputTokens: tokens.input,
         outputTokens: tokens.output,
         cacheCreationTokens: tokens.cacheWrite,
         cacheReadTokens: tokens.cacheRead,
         reasoningOutputTokens: tokens.reasoning,
         totalTokens: tokenTotal(tokens, entry.client),
-        costUSD: entry.cost || 0
+        costUSD: isFree ? 0 : (entry.cost || 0)
       };
     });
   });
@@ -236,7 +242,8 @@ function sourceLabel(client) {
     gemini: 'Gemini CLI',
     openclaw: 'OpenClaw',
     hermes: 'Hermes Agent',
-    commandcode: 'Command Code'
+    commandcode: 'Command Code',
+    ccswitch: 'CC-Switch'
   };
   return labels[client] || client || 'unknown';
 }

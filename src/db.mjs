@@ -219,6 +219,8 @@ async function initSchema(db) {
 
   if (db.driver === 'sqlite') {
     await ensureSqliteColumn(db, 'daily_usage', 'pricing_locked_at', 'TEXT');
+    await ensureSqliteColumn(db, 'daily_usage', 'provider', 'TEXT NOT NULL DEFAULT ""');
+    await ensureSqliteColumn(db, 'time_usage', 'provider', 'TEXT NOT NULL DEFAULT ""');
     for (const table of ['daily_usage', 'session_usage', 'time_usage']) {
       await dropSqliteColumn(db, table, 'cached_input_tokens');
     }
@@ -312,13 +314,13 @@ export async function pruneCollectionRuns(db, keep = Number(process.env.COLLECTI
 export async function upsertTimeUsage(db, row) {
   const values = [
     row.device, row.source, row.eventKey, row.eventTime, row.usageDate, row.model || '',
-    row.projectPath || null, row.sessionId || null, row.inputTokens || 0,
+    row.provider || '', row.projectPath || null, row.sessionId || null, row.inputTokens || 0,
     row.outputTokens || 0, row.cacheCreationTokens || 0, row.cacheReadTokens || 0,
     row.reasoningOutputTokens || 0, row.totalTokens || 0, row.costUSD || 0
   ];
   const now = nowExpression(db.driver);
   const columns = `
-    device, source, event_key, event_time, usage_date, model, project_path, session_id,
+    device, source, event_key, event_time, usage_date, model, provider, project_path, session_id,
     input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
     reasoning_output_tokens, total_tokens, cost_usd, updated_at
   `;
@@ -326,9 +328,10 @@ export async function upsertTimeUsage(db, row) {
   if (db.driver === 'mysql') {
     await db.run(`
       INSERT INTO time_usage (row_key, ${columns})
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${now})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${now})
       ON DUPLICATE KEY UPDATE
         event_time = VALUES(event_time), usage_date = VALUES(usage_date), model = VALUES(model),
+        provider = VALUES(provider),
         project_path = VALUES(project_path), session_id = VALUES(session_id),
         input_tokens = VALUES(input_tokens), output_tokens = VALUES(output_tokens),
         cache_creation_tokens = VALUES(cache_creation_tokens), cache_read_tokens = VALUES(cache_read_tokens),
@@ -340,9 +343,10 @@ export async function upsertTimeUsage(db, row) {
 
   await db.run(`
     INSERT INTO time_usage (${columns})
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${now})
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${now})
     ON CONFLICT(device, source, event_key) DO UPDATE SET
       event_time = excluded.event_time, usage_date = excluded.usage_date, model = excluded.model,
+      provider = excluded.provider,
       project_path = excluded.project_path, session_id = excluded.session_id,
       input_tokens = excluded.input_tokens, output_tokens = excluded.output_tokens,
       cache_creation_tokens = excluded.cache_creation_tokens, cache_read_tokens = excluded.cache_read_tokens,
@@ -357,7 +361,7 @@ export async function deleteTimeUsageForSource(db, device, source) {
 
 export async function upsertDaily(db, row) {
   const values = [
-    row.device, row.source, row.usageDate, row.model || '', row.inputTokens || 0,
+    row.device, row.source, row.usageDate, row.model || '', row.provider || '', row.inputTokens || 0,
     row.outputTokens || 0, row.cacheCreationTokens || 0, row.cacheReadTokens || 0,
     row.reasoningOutputTokens || 0, row.totalTokens || 0, row.costUSD || 0, row.usageDate
   ];
@@ -367,10 +371,10 @@ export async function upsertDaily(db, row) {
   if (db.driver === 'mysql') {
     await db.run(`
       INSERT INTO daily_usage (
-        row_key, device, source, usage_date, model, input_tokens, output_tokens,
+        row_key, device, source, usage_date, model, provider, input_tokens, output_tokens,
         cache_creation_tokens, cache_read_tokens, reasoning_output_tokens,
         total_tokens, cost_usd, pricing_locked_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? < ${today}, ${now}, NULL), ${now})
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? < ${today}, ${now}, NULL), ${now})
       ON DUPLICATE KEY UPDATE
         input_tokens = VALUES(input_tokens), output_tokens = VALUES(output_tokens),
         cache_creation_tokens = VALUES(cache_creation_tokens), cache_read_tokens = VALUES(cache_read_tokens),
@@ -380,17 +384,17 @@ export async function upsertDaily(db, row) {
           daily_usage.usage_date < ${today}, COALESCE(daily_usage.pricing_locked_at, ${now}), NULL
         ),
         updated_at = ${now}
-    `, [mysqlRowKey(row.device, row.source, row.usageDate, row.model || ''), ...values]);
+    `, [mysqlRowKey(row.device, row.source, row.usageDate, row.model || '', row.provider || ''), ...values]);
     return;
   }
 
   await db.run(`
     INSERT INTO daily_usage (
-      device, source, usage_date, model, input_tokens, output_tokens,
+      device, source, usage_date, model, provider, input_tokens, output_tokens,
       cache_creation_tokens, cache_read_tokens, reasoning_output_tokens,
       total_tokens, cost_usd, pricing_locked_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? < ${today} THEN ${now} ELSE NULL END, ${now})
-    ON CONFLICT(device, source, usage_date, model) DO UPDATE SET
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? < ${today} THEN ${now} ELSE NULL END, ${now})
+    ON CONFLICT(device, source, usage_date, model, provider) DO UPDATE SET
       input_tokens = excluded.input_tokens, output_tokens = excluded.output_tokens,
       cache_creation_tokens = excluded.cache_creation_tokens, cache_read_tokens = excluded.cache_read_tokens,
       reasoning_output_tokens = excluded.reasoning_output_tokens, total_tokens = excluded.total_tokens,

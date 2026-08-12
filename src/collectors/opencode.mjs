@@ -280,8 +280,10 @@ export async function collect(pricingData = null) {
     if (dedupKey && seen.has(dedupKey)) return;
     if (dedupKey) seen.add(dedupKey);
 
-    const calculatedCost = calculateCost(message.model, message.tokens, pricingData, message.provider);
-    const cost = message.cost > 0 ? message.cost : calculatedCost;
+    // Free models (provider "opencode" or -free suffix) are billed at $0
+    const isFree = message.provider === 'opencode' || /-free$/i.test(message.model);
+    const calculatedCost = isFree ? 0 : calculateCost(message.model, message.tokens, pricingData, message.provider);
+    const cost = message.cost > 0 && !isFree ? message.cost : calculatedCost;
     if (keepTimeEvent(message.eventTime)) {
       events.push({
         client: CLIENT_KEY,
@@ -292,12 +294,13 @@ export async function collect(pricingData = null) {
         workspaceKey: message.workspace || message.sessionId || 'unknown',
         workspaceLabel: message.workspaceLabel || message.workspace || message.sessionId || 'unknown',
         model: message.model,
+        provider: message.provider,
         tokens: message.tokens,
         cost
       });
     }
 
-    const dk = `${message.date}::${message.model}`;
+    const dk = `${message.date}::${message.model}::${message.provider}`;
     if (!dailyMap.has(dk)) {
       dailyMap.set(dk, { date: message.date, model: message.model, provider: message.provider, ...zero(), cost: 0 });
     }
@@ -355,6 +358,7 @@ function buildOutput(dailyMap, wmMap) {
       clients: rows.map(row => ({
         client: CLIENT_KEY,
         modelId: row.model,
+        provider: row.provider,
         tokens: {
           input: row.input,
           output: row.output,

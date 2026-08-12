@@ -40,6 +40,48 @@ const PALETTE_FALLBACK = [
   'oklch(0.58 0.14 240)', 'oklch(0.63 0.14 330)', 'oklch(0.68 0.12 220)',
 ];
 
+// Orthogonal classification of an agent source by billing model: subscription
+// vs pay-as-you-go (API).  Provider (from collectors, e.g. opencode-go) and
+// model suffixes further split the buckets.
+const SUBSCRIPTION_SOURCES = new Set(['Command Code']);
+const PROVIDER_SUBSCRIPTION = '订阅-Commandcode';
+const PROVIDER_OTHER = '其他';
+
+const SUBSCRIPTION_PROVIDERS = {
+  'opencode_go': '订阅-Opencode Go',
+  'minimax_cn_coding_plan': '订阅-MiniMax',
+  'minimax_cn': '订阅-MiniMax',
+  'agnes': '订阅-Agnes'
+};
+const PAYG_PROVIDERS = new Set(['deepseek']);
+const FREE_MODEL_RE = /-free$/i;
+
+function providerOf(source, provider = '', model = '') {
+  if (SUBSCRIPTION_SOURCES.has(source)) return PROVIDER_SUBSCRIPTION;
+  const sub = SUBSCRIPTION_PROVIDERS[provider];
+  if (sub) return sub;
+  if (FREE_MODEL_RE.test(model) || provider === 'opencode') return '免费';
+  if (PAYG_PROVIDERS.has(provider)) return '按量计费-DeepSeek';
+  return PROVIDER_OTHER;
+}
+
+// Public API base URL for each agent source — used for the endpoint dimension.
+const SOURCE_ENDPOINTS = {
+  'Command Code': 'api.commandcode.ai',
+  'OpenCode': 'opencode.ai/api',
+  'Claude Code': 'api.anthropic.com',
+  'Claude Code (JS)': 'api.anthropic.com',
+  'Codex CLI': 'api.openai.com',
+  'Codex CLI (JS)': 'api.openai.com',
+  'Hermes Agent': 'hermes.api',
+  'OpenClaw': 'openclaw.api',
+  'Gemini CLI': 'generativelanguage.googleapis.com',
+};
+
+function endpointOf(source) {
+  return SOURCE_ENDPOINTS[source] || 'unknown';
+}
+
 // Deterministic color for any source name (even future ones not in PALETTE)
 function getSourceColor(name) {
   if (!name) return 'var(--muted)';
@@ -209,6 +251,7 @@ function filterDaily(rows, f) {
   return rows.filter(r =>
     r.usageDate >= f.startDate && r.usageDate <= f.endDate &&
     (f.sources.size === 0 || f.sources.has(r.source)) &&
+    (f.providers.size === 0 || !r.provider || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
     (f.devices.size === 0 || f.devices.has(r.device)) &&
     (f.models.size  === 0 || f.models.has(r.model))
   );
@@ -223,6 +266,7 @@ function filterTime(rows, f) {
       (startMs == null || ms >= startMs) &&
       (endMs == null || ms <= endMs) &&
       (f.sources.size === 0 || f.sources.has(r.source)) &&
+      (f.providers.size === 0 || !r.provider || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
       (f.devices.size === 0 || f.devices.has(r.device)) &&
       (f.models.size  === 0 || f.models.has(r.model));
   });
@@ -309,7 +353,7 @@ function alpha(color, a) {
 }
 
 export const U = {
-  PALETTE, PALETTE_FALLBACK, getSourceColor,
+  PALETTE, PALETTE_FALLBACK, getSourceColor, providerOf, endpointOf,
   fmt, fmtUS, fmtUS4, fmtCNY, fmtCNY4,
   fmtCost, fmtCost4, getCurrency, setCurrency, USD_CNY_RATE,
   compact, compactCN, pct, deltaPct, formatTs,

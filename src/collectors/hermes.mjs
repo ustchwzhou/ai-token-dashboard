@@ -8,8 +8,8 @@
  * Requires Node.js >= 22.5.0 (built-in node:sqlite).
  */
 
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { configuredPath, expandPath } from '../collector-config.mjs';
 import { calculateCost } from '../pricing.mjs';
@@ -24,10 +24,27 @@ const EVENT_CUTOFF_MS = Date.now() - EVENT_HISTORY_DAYS * 24 * 60 * 60 * 1000;
 // Path resolution
 // ---------------------------------------------------------------------------
 
-function getDbPath() {
+function getDbPaths() {
   const hermesHome = process.env.HERMES_HOME;
-  if (hermesHome) return join(expandPath(hermesHome), 'state.db');
-  return configuredPath('hermes', 'dbPath');
+  const roots = [];
+  if (hermesHome) {
+    roots.push(join(expandPath(hermesHome), 'state.db'));
+  } else {
+    roots.push(configuredPath('hermes', 'dbPath'));
+  }
+  // Profile databases hold per-profile sessions that are not in the main db.
+  const homeRoot = roots[0] ? join(roots[0], '..') : null;
+  if (homeRoot) {
+    const profilesDir = join(homeRoot, 'profiles');
+    try {
+      for (const entry of readdirSync(profilesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const profileDb = join(profilesDir, entry.name, 'state.db');
+        if (existsSync(profileDb)) roots.push(profileDb);
+      }
+    } catch { /* ignore */ }
+  }
+  return roots.filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
@@ -77,14 +94,81 @@ export async function collect(pricingData = null) {
     modelsJson: { entries: [] }
   };
 
-  const dbPath = getDbPath();
-  if (!existsSync(dbPath)) return empty;
+  const dbPaths = getDbPaths();
+  const rowsByDb = [];
+  for (const dbPath of dbPaths) {
+    if (!existsSync(dbPath)) continue;
+    const rows = readDbRows(dbPath);
+    if (!rows) continue;   // skip unreadable/corrupt db, keep the rest
+    rowsByDb.push({ dbPath, rows });
+  }
+  if (!rowsByDb.length) return empty;
 
+  const dailyMap = new Map();   // "date::model" -> aggregated
+  const wmMap    = new Map();   // sessionId -> session-level record
+  const events   = [];
+
+  for (const { dbPath, rows } of rowsByDb) {
+    const dbPrefix = basename(dbPath, '.db');   // unique per db file
+    for (const row of rows) {
+      const date     = tsToDate(row.started_at);
+      const model    = normalizeModelForGrouping(row.model || 'unknown');
+      const provider = hermesProvider(row.billing_provider, row.billing_base_url, model);
+      const tokens   = {
+        input:     pos(row.input_tokens),
+        output:    pos(row.output_tokens),
+        cacheRead:  pos(row.cache_read_tokens),
+        cacheWrite: pos(row.cache_write_tokens),
+        reasoning:  pos(row.reasoning_tokens)
+      };
+      const originalCost = posFloat(row.cost_usd);
+      const calculatedCost = calculateCost(model, tokens, pricingData, provider);
+      const cost = originalCost > 0 ? originalCost : calculatedCost;
+      const sessId   = `${dbPrefix}:${String(row.id || 'unknown')}`;
+      if (keepTimeEvent(row.started_at)) {
+        events.push({
+          client: CLIENT_KEY,
+          eventKey: sessId,
+          eventTime: row.started_at,
+          usageDate: date,
+          sessionId: sessId,
+          workspaceKey: sessId,
+          workspaceLabel: sessId,
+          model,
+          provider,
+          tokens,
+          cost
+        });
+      }
+
+      // Daily aggregation
+      const dk = `${date}::${model}::${provider}`;
+      if (!dailyMap.has(dk)) dailyMap.set(dk, { date, model, provider, ...zero(), cost: 0 });
+      const d = dailyMap.get(dk);
+      add(d, tokens);
+      d.cost += cost;
+
+      // Per-session record (each Hermes row IS a fully-aggregated session)
+      wmMap.set(sessId, {
+        workspace:      sessId,
+        workspaceLabel: sessId,
+        model,
+        provider,
+        ...tokens,
+        cost
+      });
+    }
+  }
+
+  return { ...buildOutput(dailyMap, wmMap), eventsJson: { events } };
+}
+
+function readDbRows(dbPath) {
   let db;
   try {
     db = new DatabaseSync(dbPath);
   } catch {
-    return empty;
+    return null;
   }
 
   let rows;
@@ -94,6 +178,7 @@ export async function collect(pricingData = null) {
         id,
         model,
         billing_provider,
+        billing_base_url,
         started_at,
         COALESCE(input_tokens, 0)        AS input_tokens,
         COALESCE(output_tokens, 0)       AS output_tokens,
@@ -115,70 +200,35 @@ export async function collect(pricingData = null) {
     `).all();
   } catch {
     try { db.close(); } catch { /* ignore */ }
-    return empty;
+    return null;
   }
 
   try { db.close(); } catch { /* ignore */ }
-
-  const dailyMap = new Map();   // "date::model" -> aggregated
-  const wmMap    = new Map();   // sessionId -> session-level record
-  const events   = [];
-
-  for (const row of rows) {
-    const date     = tsToDate(row.started_at);
-    const model    = normalizeModelForGrouping(row.model || 'unknown');
-    const provider = canonicalProvider(row.billing_provider) || inferProviderFromModel(model) || 'hermes';
-    const tokens   = {
-      input:     pos(row.input_tokens),
-      output:    pos(row.output_tokens),
-      cacheRead:  pos(row.cache_read_tokens),
-      cacheWrite: pos(row.cache_write_tokens),
-      reasoning:  pos(row.reasoning_tokens)
-    };
-    const originalCost = posFloat(row.cost_usd);
-    const calculatedCost = calculateCost(model, tokens, pricingData, provider);
-    const cost = originalCost > 0 ? originalCost : calculatedCost;
-    const sessId   = String(row.id || 'unknown');
-    if (keepTimeEvent(row.started_at)) {
-      events.push({
-        client: CLIENT_KEY,
-        eventKey: sessId,
-        eventTime: row.started_at,
-        usageDate: date,
-        sessionId: sessId,
-        workspaceKey: sessId,
-        workspaceLabel: sessId,
-        model,
-        tokens,
-        cost
-      });
-    }
-
-    // Daily aggregation
-    const dk = `${date}::${model}`;
-    if (!dailyMap.has(dk)) dailyMap.set(dk, { date, model, provider, ...zero(), cost: 0 });
-    const d = dailyMap.get(dk);
-    add(d, tokens);
-    d.cost += cost;
-
-    // Per-session record (each Hermes row IS a fully-aggregated session)
-    wmMap.set(sessId, {
-      workspace:      sessId,
-      workspaceLabel: sessId,
-      model,
-      provider,
-      ...tokens,
-      cost
-    });
-  }
-
-  return { ...buildOutput(dailyMap, wmMap), eventsJson: { events } };
+  return rows;
 }
 
 function keepTimeEvent(timestamp) {
   const n = Number(timestamp || 0);
   const ms = n < 10_000_000_000 ? n * 1000 : n;
   return Number.isFinite(ms) && ms >= EVENT_CUTOFF_MS;
+}
+
+/**
+ * Derive the endpoint/billing provider from Hermes billing columns.
+ * Prefer the base URL (most precise), then billing_provider, then model.
+ */
+function hermesProvider(billingProvider, billingBaseUrl, model) {
+  const base = String(billingBaseUrl || '').toLowerCase();
+  if (base.includes('minimaxi')) return 'minimax_cn';
+  if (base.includes('agnes')) return 'agnes';
+  if (base.includes('opencode.ai/zen/go')) return 'opencode_go';
+  if (base.includes('opencode.ai/zen')) return 'opencode';
+  if (base.includes('deepseek')) return 'deepseek';
+  if (base.includes('nousresearch')) return 'nous';
+  if (base.includes('nvidia')) return 'nvidia';
+  const canonical = canonicalProvider(billingProvider);
+  if (canonical) return canonical;
+  return inferProviderFromModel(model) || 'hermes';
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +250,7 @@ function buildOutput(dailyMap, wmMap) {
       clients: rows.map(row => ({
         client:  CLIENT_KEY,
         modelId: row.model,
+        provider: row.provider,
         tokens: {
           input:     row.input,
           output:    row.output,

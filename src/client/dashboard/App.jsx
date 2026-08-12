@@ -297,6 +297,7 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
     startDateTime: U.startOfDayLocal(U.daysAgo(29)),
     endDateTime: U.endOfDayLocal(U.daysAgo(0)),
     sources: new Set(),
+    providers: new Set(),
     devices: new Set(),
     models: new Set(),
     compare: true
@@ -315,8 +316,24 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
   // Build option lists
   const filterBaseRows = filters.precise && M.time.length ? M.time : M.daily;
   const allSources = useMemo(() => Array.from(new Set(filterBaseRows.map(r => r.source))), [filterBaseRows]);
+  const allProviders = useMemo(() => Array.from(new Set(filterBaseRows.map(r => U.providerOf(r.source, r.provider, r.model)))), [filterBaseRows]);
   const allDevices = useMemo(() => Array.from(new Set(filterBaseRows.map(r => r.device))), [filterBaseRows]);
   const allModels  = useMemo(() => Array.from(new Set(filterBaseRows.map(r => r.model))).filter(Boolean), [filterBaseRows]);
+
+  // Per-provider token/cost aggregates for the provider/endpoint filter row
+  const providerStats = useMemo(() => {
+    const rows = filters.precise && M.time.length ? M.time : M.daily;
+    const map = new Map();
+    for (const r of rows) {
+      const p = U.providerOf(r.source, r.provider, r.model);
+      const e = map.get(p) || { name: p, tokens: 0, cost: 0, sources: new Set() };
+      e.tokens += r.totalTokens || 0;
+      e.cost += r.costUSD || 0;
+      e.sources.add(r.source);
+      map.set(p, e);
+    }
+    return Array.from(map.values()).map(e => ({ name: e.name, tokens: e.tokens, cost: e.cost, endpoints: Array.from(e.sources).map(s => U.endpointOf(s)).filter(Boolean) }));
+  }, [filters.precise, M.time, M.daily]);
   const availableRange = useMemo(() => {
     const dates = M.daily.map(r => r.usageDate).filter(Boolean).sort();
     const times = M.time.map(r => r.eventTime).filter(Boolean).sort();
@@ -480,6 +497,8 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
         f={filters}
         setF={setFilters}
         allSources={allSources}
+        allProviders={allProviders}
+        providerStats={providerStats}
         allDevices={allDevices}
         allModels={allModels}
         availableRange={availableRange}

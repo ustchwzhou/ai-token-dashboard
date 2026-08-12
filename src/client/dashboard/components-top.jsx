@@ -219,7 +219,7 @@ function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collec
 // ───────────────────────────────────────────────────────────────
 // Filter bar
 // ───────────────────────────────────────────────────────────────
-function FilterBar({ f, setF, allSources, allDevices, allModels, availableRange, onExport, quota }) {
+function FilterBar({ f, setF, allSources, allProviders, providerStats, allDevices, allModels, availableRange, onExport, quota }) {
   const RANGES = [
     { id: 'today', label: '今天', days: 1  },
     { id: '7d',  label: '7 天',  days: 7  },
@@ -274,10 +274,10 @@ function FilterBar({ f, setF, allSources, allDevices, allModels, availableRange,
   };
 
   const clearAll = () => {
-    setF({ ...f, sources: new Set(), devices: new Set(), models: new Set() });
+    setF({ ...f, sources: new Set(), providers: new Set(), devices: new Set(), models: new Set() });
   };
 
-  const filtersActive = f.sources.size + f.devices.size + f.models.size;
+  const filtersActive = f.sources.size + f.providers.size + f.devices.size + f.models.size;
 
   return (
     <div className="filterbar">
@@ -314,6 +314,30 @@ function FilterBar({ f, setF, allSources, allDevices, allModels, availableRange,
               {s}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="filter-row">
+        <div className="filter-group filter-group-providers">
+          <span className="filter-label">供应商/订阅</span>
+          {allProviders.map(p => {
+            const st = providerStats && providerStats.find(x => x.name === p);
+            return (
+              <button key={p}
+                className={`pill pill-stats ${f.providers.has(p) ? 'active' : ''}`}
+                style={f.providers.has(p) ? {color: U.getSourceColor(p) || ''} : {}}
+                onClick={() => toggleSet('providers', p)}>
+                <span className="pill-dot" style={{background: U.getSourceColor(p) || ''}}/>
+                {p}
+                {st && (
+                  <span className="pill-stats-nums">
+                    <span className="pill-stat">{U.compactCN(st.tokens)}</span>
+                    <span className="pill-stat pill-stat-cost">{U.fmtCost(st.cost)}</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -122,10 +122,10 @@ async function handleApi(req, url, res) {
       }
     }
 
-    const dailyId = apiRowIdExpression(db.driver, ['device', 'source', 'usage_date', 'model']);
+    const dailyId = apiRowIdExpression(db.driver, ['device', 'source', 'usage_date', 'model', 'provider']);
     const rawDaily = await all(`
       SELECT ${dailyId} AS id, device, source,
-        usage_date AS ${as('usageDate')}, model,
+        usage_date AS ${as('usageDate')}, model, provider,
         input_tokens AS ${as('inputTokens')},
         output_tokens AS ${as('outputTokens')},
         cache_creation_tokens AS ${as('cacheCreationTokens')},
@@ -171,6 +171,7 @@ async function handleApi(req, url, res) {
           event_time AS ${as('eventTime')},
           usage_date AS ${as('usageDate')},
           model,
+          provider,
           project_path AS ${as('projectPath')},
           session_id AS ${as('sessionId')},
           input_tokens AS ${as('inputTokens')},
@@ -223,6 +224,7 @@ async function handleApi(req, url, res) {
           event_time AS ${as('eventTime')},
           usage_date AS ${as('usageDate')},
           model,
+          provider,
           project_path AS ${as('projectPath')},
           session_id AS ${as('sessionId')},
           event_key AS ${as('eventKey')},

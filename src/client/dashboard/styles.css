@@ -864,6 +864,20 @@ button, input, select { font-family: inherit; color: inherit; }
   width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; border-radius: 3px;
 }
 
+/* Provider/endpoint pills carry per-endpoint token + estimated cost stats */
+.pill-stats { gap: 5px; }
+.pill-stats-nums {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-left: 2px;
+  padding-left: 7px;
+  border-left: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.pill-stat { font-size: 10.5px; color: var(--text-3); }
+.pill-stat-cost { color: var(--c-amber); font-weight: 600; }
+
 .select-wrap {
   position: relative;
   display: inline-flex;

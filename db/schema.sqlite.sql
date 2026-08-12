@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS daily_usage (
   source TEXT NOT NULL,
   usage_date TEXT NOT NULL,
   model TEXT NOT NULL DEFAULT '',
+  provider TEXT NOT NULL DEFAULT '',
   input_tokens INTEGER NOT NULL DEFAULT 0,
   output_tokens INTEGER NOT NULL DEFAULT 0,
   cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
@@ -22,7 +23,7 @@ CREATE TABLE IF NOT EXISTS daily_usage (
   cost_usd REAL NOT NULL DEFAULT 0,
   pricing_locked_at TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  PRIMARY KEY (device, source, usage_date, model)
+  PRIMARY KEY (device, source, usage_date, model, provider)
 );
 
 CREATE TABLE IF NOT EXISTS session_usage (
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS time_usage (
   event_time TEXT NOT NULL,
   usage_date TEXT NOT NULL,
   model TEXT NOT NULL DEFAULT '',
+  provider TEXT NOT NULL DEFAULT '',
   project_path TEXT,
   session_id TEXT,
   input_tokens INTEGER NOT NULL DEFAULT 0,
