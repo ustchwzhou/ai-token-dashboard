@@ -121,7 +121,7 @@
 
 ## 附录：提交记录
 
-以下为 fork 点之后的所有提交（`git diff --stat origin/main..main`：3 个提交，45 文件，+2227 / -185）。
+以下为 fork 点之后的所有提交（`git diff --stat origin/main..main`：4 个提交，47 文件，+2477 / -186）。
 
 ### 提交 1 — `2e06fe3` feat: add Command Code collector, pricing refresh, CNY display and path generalization
 
@@ -135,15 +135,20 @@ Command Code 的 `inputTokens`（总输入）拆分为未命中 input + cache re
 
 新增 CC-Switch 采集器；按 API 端点做订阅分类（`providerOf`）；`daily_usage`/`time_usage` 增加 `provider` 列（三套 schema）；Hermes `profiles/*/state.db` 扫描与 provider 推导；daily/time 过滤的正交性修复。
 
-### 未提交改动（当前工作区）
+### 提交 4 — `640a3f6` fix: orthogonal subscription filter, live provider pills, natural-month comparison
 
-> 尚未 commit，仅存在于本地工作区。
+此前工作区的全部改动在本提交固化：
 
-- **订阅过滤不正交修复**（`src/client/shared/utils.js`）：去掉 `filterDaily`/`filterTime` 中 provider 过滤的 `!r.provider` 短路——原先空 provider 的行（Claude Code / Codex CLI）在选中任何订阅时都无条件通过，导致 Top 模型第一条永远不变。修复后每行统一按 `providerOf` 归类再过滤。
-- **订阅 pill 数字静态修复**（`src/client/dashboard/App.jsx`）：`providerStats` 原先直接聚合未过滤的 `M.daily`/`M.time`，不随日期范围/来源/设备/模型变化。修复后改为聚合"除订阅外所有维度过滤后"的行，pill 数字随实际筛选联动。
-- **回归测试**（`test/client-utils.test.mjs`）：新增 `providerOf` 分类、`filterDaily`/`filterTime` 对空 provider 行的订阅过滤用例。
-- **Command Code taste 提示**（`components-top.jsx` / `styles.css`）：订阅 pill 加 hover 提示——本地统计未含 taste 流水，实际耗费用量预计偏低。纯展示层。
-- **对比上一周期修复**（`src/client/dashboard/App.jsx`）：`compareData` 对「本月」由"等长前推"（原逻辑推到上个月的部分日期）改为**完整上个自然月**（如本月 08-01~08-13 → 上一周期 07-01~07-31）；「今天→昨天」「N 天→紧邻前 N 天」保持不变。
+- **订阅过滤正交化**（`src/client/shared/utils.js`）：去掉 `filterDaily`/`filterTime` 中 provider 过滤的 `!r.provider` 短路——原先空 provider 的行（Claude Code / Codex CLI）在选中任何订阅时都无条件通过，导致 Top 模型第一条永远不变。修复后每行统一按 `providerOf` 归类再过滤。
+- **订阅 pill 数字联动**（`src/client/dashboard/App.jsx`）：`providerStats` 改由"排除订阅外所有维度过滤后"的行聚合，随日期/来源/设备/模型筛选实时变化。
+- **对比上一周期修复**（`src/client/dashboard/App.jsx`）：`compareData` 对「本月」由"等长前推"改为**完整上个自然月**（如本月 08-01~08-13 → 上一周期 07-01~07-31）；「今天→昨天」「N 天→紧邻前 N 天」保持不变。
 - **时间筛选新增「本月」**（`components-top.jsx`）：点击自动筛选本月 1 日至今。
 - **KPI 文案调整**（`App.jsx`）：「估算费用」→「按量计费估算费用」，明确是估算、非厂商账单。
 - **货币切换按钮加汇率提示**（`components-top.jsx` / `styles.css`）：按钮显示 `汇率按 {USD_CNY_RATE} 估算`，数值随 `window.__ENV__` 注入或 localStorage 覆盖变化。
+- **Command Code taste 提示**（`components-top.jsx` / `styles.css`）：订阅 pill 加 hover 提示——本地统计未含 taste 流水，实际耗费用量预计偏低。纯展示层。
+- **回归测试**（`test/client-utils.test.mjs`）：新增 `providerOf` 分类、`filterDaily`/`filterTime` 对空 provider 行的订阅过滤用例。
+- **新增 `docs/fork-changes.md`**；更新 OpenRouter 定价缓存（+3 模型：qwen3.8-2.4t / grok-4.6 / deepseek-v4-pro-0813）。
+
+### 当前工作区
+
+> 干净，无未提交改动；此前工作区改动均已随提交 4 固化。

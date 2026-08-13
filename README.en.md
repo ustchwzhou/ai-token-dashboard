@@ -2,6 +2,8 @@
 
 **English** | [中文](README.md)
 
+> **This is a fork**: it builds on the [original repository](https://github.com/fengguanghuai/ai-token-dashboard) with feature additions and project changes (new Command Code / CC-Switch data sources, subscription classification, per-call usage feed, pricing refresh, USD/CNY toggle, and more). See [`docs/fork-changes.en.md`](docs/fork-changes.en.md) for the full change log.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.5-green)](https://nodejs.org)
 

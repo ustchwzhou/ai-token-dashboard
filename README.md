@@ -2,6 +2,8 @@
 
 [English](README.en.md) | **中文**
 
+> **本仓库为 fork 版本**：在[原仓库](https://github.com/fengguanghuai/ai-token-dashboard)的基础上做了功能扩充与项目修改（新增 Command Code / CC-Switch 数据源、订阅分类、逐调用流水页、定价刷新、USD/CNY 切换等）。完整改动记录见 [`docs/fork-changes.md`](docs/fork-changes.md)。
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.5-green)](https://nodejs.org)
 
