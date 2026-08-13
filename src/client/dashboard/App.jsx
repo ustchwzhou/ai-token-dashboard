@@ -320,11 +320,22 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
   const allDevices = useMemo(() => Array.from(new Set(filterBaseRows.map(r => r.device))), [filterBaseRows]);
   const allModels  = useMemo(() => Array.from(new Set(filterBaseRows.map(r => r.model))).filter(Boolean), [filterBaseRows]);
 
-  // Per-provider token/cost aggregates for the provider/endpoint filter row
+  // Per-provider token/cost aggregates for the provider/endpoint filter row.
+  // These must track the current date range and source/device/model filters, but
+  // stay independent of which subscription pill is selected — otherwise clicking
+  // one subscription would zero out every other pill. So aggregate over rows
+  // filtered by everything except the provider dimension.
+  const providerContextRows = useMemo(() => {
+    const effective = { ...filters, providers: new Set() };
+    if (focusedSource) effective.sources = new Set([focusedSource]);
+    return filters.precise && M.time.length
+      ? U.filterTime(M.time, effective)
+      : U.filterDaily(M.daily, effective);
+  }, [filters, focusedSource, M.time, M.daily]);
+
   const providerStats = useMemo(() => {
-    const rows = filters.precise && M.time.length ? M.time : M.daily;
     const map = new Map();
-    for (const r of rows) {
+    for (const r of providerContextRows) {
       const p = U.providerOf(r.source, r.provider, r.model);
       const e = map.get(p) || { name: p, tokens: 0, cost: 0, sources: new Set() };
       e.tokens += r.totalTokens || 0;
@@ -333,7 +344,7 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
       map.set(p, e);
     }
     return Array.from(map.values()).map(e => ({ name: e.name, tokens: e.tokens, cost: e.cost, endpoints: Array.from(e.sources).map(s => U.endpointOf(s)).filter(Boolean) }));
-  }, [filters.precise, M.time, M.daily]);
+  }, [providerContextRows]);
   const availableRange = useMemo(() => {
     const dates = M.daily.map(r => r.usageDate).filter(Boolean).sort();
     const times = M.time.map(r => r.eventTime).filter(Boolean).sort();
@@ -388,6 +399,16 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
         dates: U.rangeDates(startDateTime.slice(0, 10), endDateTime.slice(0, 10)),
         totals: U.aggregateTotals(rows)
       };
+    }
+    // 本月：上一周期是完整的上一个自然月（不等长等宽，而是整月对齐）。
+    // 例如本月 2026-08-01 ~ 08-13，上一周期 = 2026-07-01 ~ 07-31。
+    if (filters.rangeId === 'month') {
+      const [y, m] = String(filters.startDate).split('-').map(Number);
+      const prevStart = U.localDateStr(new Date(y, m - 2, 1));
+      const prevEnd = U.addDays(filters.startDate, -1);
+      const rows = U.filterDaily(M.daily, { ...filters, startDate: prevStart, endDate: prevEnd });
+      const cDates = U.rangeDates(prevStart, prevEnd);
+      return { rows, dates: cDates, totals: U.aggregateTotals(rows) };
     }
     const days = dates.length;
     const endStr = U.addDays(filters.startDate, -1);
@@ -538,7 +559,7 @@ function Dashboard({ M, refreshing, collecting, collectStatus, quota, onRefresh,
           sub={`命中 ${totals.cacheHitRate.toFixed(0)}%`}
           delta={U.deltaPct(totals.cacheTokens, compareData.totals?.cacheTokens)}
           sparkValues={sparkBy('cacheReadTokens')} sparkColor="oklch(0.65 0.11 200)" />
-        <KPI label="估算费用" value={U.fmtCost(totals.costUSD)}
+        <KPI label="按量计费估算费用" value={U.fmtCost(totals.costUSD)}
           sub="累计"
           delta={U.deltaPct(totals.costUSD, compareData.totals?.costUSD)}
           sparkValues={sparkBy('costUSD')} sparkColor="oklch(0.72 0.14 75)" />

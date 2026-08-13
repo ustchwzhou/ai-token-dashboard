@@ -187,8 +187,10 @@ function Topbar({ lastSync, onRefresh, refreshing, onCollect, collecting, collec
           <span>最后同步 <strong style={{color:'var(--text)', fontWeight:600}}>{lastSync}</strong></span>
         </div>
         <ThemeToggle />
-        <button className="btn btn-ghost" onClick={onToggleCurrency} title="切换美元/人民币显示">
+        <button className="btn btn-ghost" onClick={onToggleCurrency}
+          title={`切换美元/人民币显示 · 汇率按 ${U.USD_CNY_RATE} 估算`}>
           {currency === 'cny' ? '¥' : '$'}
+          <span className="btn-rate-note">汇率按 {U.USD_CNY_RATE} 估算</span>
         </button>
         <button
           className={`btn btn-ghost ${updatingPricing ? 'loading' : ''}`}
@@ -225,6 +227,7 @@ function FilterBar({ f, setF, allSources, allProviders, providerStats, allDevice
     { id: '7d',  label: '7 天',  days: 7  },
     { id: '14d', label: '14 天', days: 14 },
     { id: '30d', label: '30 天', days: 30 },
+    { id: 'month', label: '本月' },
     { id: '90d', label: '90 天', days: 90 },
     { id: 'all', label: '全部' }
   ];
@@ -242,7 +245,10 @@ function FilterBar({ f, setF, allSources, allProviders, providerStats, allDevice
       });
       return;
     }
-    const startDate = U.daysAgo(r.days - 1);
+    const now = new Date();
+    const startDate = r.id === 'month'
+      ? U.localDateStr(new Date(now.getFullYear(), now.getMonth(), 1))
+      : U.daysAgo(r.days - 1);
     const endDate = U.daysAgo(0);
     setF({
       ...f,
@@ -322,13 +328,20 @@ function FilterBar({ f, setF, allSources, allProviders, providerStats, allDevice
           <span className="filter-label">供应商/订阅</span>
           {allProviders.map(p => {
             const st = providerStats && providerStats.find(x => x.name === p);
+            // Command Code 的 taste 流水不写入本地会话文件，官网统计口径更高。
+            // 此处仅加展示层提示，不调整任何统计逻辑。
+            const ccNote = p === 'Command Code'
+              ? '本地统计未包含 taste 流水（Command Code 订阅），实际耗费用量预计偏低'
+              : undefined;
             return (
               <button key={p}
                 className={`pill pill-stats ${f.providers.has(p) ? 'active' : ''}`}
                 style={f.providers.has(p) ? {color: U.getSourceColor(p) || ''} : {}}
+                title={ccNote}
                 onClick={() => toggleSet('providers', p)}>
                 <span className="pill-dot" style={{background: U.getSourceColor(p) || ''}}/>
                 {p}
+                {ccNote && <span className="pill-note" title={ccNote}>&#9432;</span>}
                 {st && (
                   <span className="pill-stats-nums">
                     <span className="pill-stat">{U.compactCN(st.tokens)}</span>

@@ -251,7 +251,7 @@ function filterDaily(rows, f) {
   return rows.filter(r =>
     r.usageDate >= f.startDate && r.usageDate <= f.endDate &&
     (f.sources.size === 0 || f.sources.has(r.source)) &&
-    (f.providers.size === 0 || !r.provider || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
+    (f.providers.size === 0 || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
     (f.devices.size === 0 || f.devices.has(r.device)) &&
     (f.models.size  === 0 || f.models.has(r.model))
   );
@@ -266,7 +266,7 @@ function filterTime(rows, f) {
       (startMs == null || ms >= startMs) &&
       (endMs == null || ms <= endMs) &&
       (f.sources.size === 0 || f.sources.has(r.source)) &&
-      (f.providers.size === 0 || !r.provider || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
+      (f.providers.size === 0 || f.providers.has(providerOf(r.source, r.provider, r.model))) &&
       (f.devices.size === 0 || f.devices.has(r.device)) &&
       (f.models.size  === 0 || f.models.has(r.model));
   });
